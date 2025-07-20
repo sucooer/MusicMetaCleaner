@@ -1,0 +1,29 @@
+# 忽略uploads文件夹及其所有子文件
+uploads/
+
+# 忽略processed文件夹及其所有子文件
+processed/
+
+# 其他常见的忽略文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis/ 

@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频歌词清理工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-color: #f093fb;
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-color: #4facfe;
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-color: #ffecd2;
+            --warning-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --dark-color: #2c3e50;
+            --light-color: #f8f9fa;
+            --border-radius: 15px;
+            --box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding: 30px;
+            border: 1px solid #dee2e6;
+        }
+
+        h1 {
+            font-weight: 700 !important;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #2c3e50 !important;
+            text-shadow: none !important;
+        }
+
+        /* 确保标题文字可见 */
+        h1, h1 * {
+            color: #2c3e50 !important;
+            background: none !important;
+            -webkit-text-fill-color: #2c3e50 !important;
+        }
+
+        /* 标题文字 - 使用清晰的深色 */
+        .gradient-title {
+            color: #2c3e50 !important;
+            font-weight: 700 !important;
+            text-shadow: none !important;
+            background: none !important;
+            -webkit-text-fill-color: #2c3e50 !important;
+            -webkit-background-clip: initial !important;
+        }
+
+        .drag-drop-area {
+            border: 3px dashed #007bff;
+            border-radius: var(--border-radius);
+            padding: 50px;
+            text-align: center;
+            background: rgba(0, 123, 255, 0.1);
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .drag-drop-area::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .drag-drop-area:hover::before, .drag-drop-area.dragover::before {
+            opacity: 1;
+        }
+
+        .drag-drop-area:hover, .drag-drop-area.dragover {
+            border-color: #0056b3;
+            background: rgba(0, 86, 179, 0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 123, 255, 0.3);
+        }
+
+        .drag-drop-area i {
+            color: #007bff !important;
+        }
+
+        .btn {
+            border-radius: 25px !important;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            cursor: pointer;
+            user-select: none;
+            vertical-align: middle;
+            line-height: 1.5;
+            white-space: nowrap;
+        }
+
+        /* 文件列表中的小按钮 */
+        .file-item .btn-sm {
+            border-radius: 20px !important;
+            padding: 8px 16px;
+            font-size: 0.875rem;
+            min-height: 36px;
+            font-weight: 500;
+        }
+
+        .btn-lg {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            min-height: 50px;
+        }
+
+        .btn-sm {
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            min-height: 36px;
+        }
+
+        .btn-primary {
+            background: #007bff !important;
+            border: none !important;
+            color: white !important;
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+        }
+
+        .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+            background: #0056b3 !important;
+            border: none !important;
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 86, 179, 0.6);
+        }
+
+        .btn-outline-primary {
+            background: transparent !important;
+            border: 2px solid #007bff !important;
+            color: #007bff !important;
+        }
+
+        .btn-outline-primary:hover, .btn-outline-primary:focus, .btn-outline-primary:active {
+            background: #007bff !important;
+            border: 2px solid #007bff !important;
+            color: white !important;
+            transform: translateY(-2px);
+        }
+
+        .card {
+            border: 1px solid #dee2e6;
+            border-radius: var(--border-radius);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            background: white;
+            transition: var(--transition);
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: #007bff !important;
+            color: white !important;
+            border: none;
+            padding: 20px;
+            font-weight: 600;
+        }
+
+        .file-item {
+            border: 1px solid #dee2e6;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 15px;
+            background: white;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-item h6 {
+            color: var(--dark-color);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .file-item .text-success {
+            color: #28a745 !important;
+        }
+
+        .file-item .text-warning {
+            color: #ffc107 !important;
+        }
+
+        .file-item .bi-check-circle {
+            color: #28a745;
+        }
+
+        .file-item .bi-x-circle {
+            color: #dc3545;
+        }
+
+        .file-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: var(--transition);
+        }
+
+        .file-item:hover::before {
+            left: 100%;
+        }
+
+        .file-item:hover {
+            transform: translateX(10px);
+            border-color: var(--primary-color);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .lyrics-preview {
+            max-height: 350px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            background: #f8f9fa;
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .lyrics-preview::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .lyrics-preview::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .lyrics-preview::-webkit-scrollbar-thumb {
+            background: #007bff;
+            border-radius: 10px;
+        }
+
+        .removed-lines {
+            background: var(--warning-gradient);
+            border: 1px solid #f5576c;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.2);
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress {
+            height: 8px;
+            border-radius: 10px;
+            background: rgba(102, 126, 234, 0.2);
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: #007bff !important;
+            border-radius: 10px;
+            transition: var(--transition);
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #dee2e6 0%, #dee2e6 100%);
+            z-index: 0;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #dee2e6;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-weight: bold;
+            font-size: 18px;
+            transition: var(--transition);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .step.active .step-circle {
+            background: var(--primary-gradient);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .step.completed .step-circle {
+            background: var(--success-gradient);
+            color: white;
+            box-shadow: 0 10px 25px rgba(79, 172, 254, 0.4);
+        }
+
+        .step-circle i {
+            font-size: 20px;
+        }
+
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .alert {
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+            border-left: 5px solid var(--success-color);
+        }
+
+        .alert-success {
+            background: var(--success-gradient);
+            color: white;
+        }
+
+        .alert-warning {
+            background: var(--warning-gradient);
+            color: var(--dark-color);
+        }
+
+        .list-group-item {
+            border: 1px solid rgba(102, 126, 234, 0.2) !important;
+            border-radius: var(--border-radius) !important;
+            margin-bottom: 10px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9) !important;
+            transition: var(--transition);
+        }
+
+        .list-group-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .list-group-item h6 {
+            color: var(--dark-color) !important;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .list-group-item .text-muted {
+            color: #6c757d !important;
+        }
+
+        .list-group-item .btn {
+            white-space: nowrap;
+        }
+
+        .badge {
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-weight: 600;
+        }
+
+        .bg-secondary {
+            background: #6c757d !important;
+        }
+
+        /* 文件夹标题样式 */
+        .folder-header h6 {
+            color: var(--dark-color) !important;
+            font-weight: 600;
+        }
+
+        .folder-header .badge {
+            background: #007bff !important;
+            color: white !important;
+        }
+
+        /* 统计信息样式 */
+        .alert-info {
+            background: #d1ecf1 !important;
+            border: 1px solid #bee5eb !important;
+            color: #0c5460 !important;
+        }
+
+        .alert-info h6 {
+            color: #0c5460 !important;
+            font-weight: 600;
+        }
+
+        .alert-info p {
+            color: #0c5460 !important;
+            margin-bottom: 0.5rem;
+        }
+
+        .toast {
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-success {
+            background: #28a745 !important;
+            border: none !important;
+            color: white !important;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-success:hover, .btn-success:focus, .btn-success:active {
+            background: #1e7e34 !important;
+            border: none !important;
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(30, 126, 52, 0.4);
+        }
+
+        .btn-outline-secondary {
+            background: transparent !important;
+            border: 2px solid #6c757d !important;
+            color: #6c757d !important;
+        }
+
+        .btn-outline-secondary:hover, .btn-outline-secondary:focus, .btn-outline-secondary:active {
+            background: #6c757d !important;
+            border: 2px solid #6c757d !important;
+            color: white !important;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline-light {
+            background: transparent !important;
+            border: 2px solid rgba(255, 255, 255, 0.8) !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .btn-outline-light:hover, .btn-outline-light:focus, .btn-outline-light:active {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border: 2px solid white !important;
+            color: white !important;
+            transform: translateY(-2px);
+        }
+
+        /* 上传区域动画 */
+        .upload-icon-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .upload-animation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            border: 3px solid transparent;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 3s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .upload-tips {
+            opacity: 0.8;
+            transition: var(--transition);
+        }
+
+        .drag-drop-area:hover .upload-tips {
+            opacity: 1;
+            transform: translateY(-5px);
+        }
+
+        /* 按钮波纹效果 */
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: width 0.6s, height 0.6s;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 禁用状态 */
+        .btn:disabled, .btn.disabled {
+            opacity: 0.6 !important;
+            transform: none !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+        }
+
+        /* 文件项目动画 */
+        .file-item {
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* 卡片动画 */
+        .card {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 步骤指示器动画 */
+        .step-circle {
+            position: relative;
+        }
+
+        .step-circle::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border: 2px solid transparent;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        .step.active .step-circle::after {
+            border-color: var(--primary-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* 进度条动画 */
+        .progress-bar {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* 悬浮效果 */
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* 成功状态动画 */
+        .success-checkmark {
+            animation: checkmark 0.6s ease-in-out;
+        }
+
+        @keyframes checkmark {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* 加载动画 */
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* 智能清理文字 - 使用清晰的蓝色 */
+        .gradient-text {
+            color: #667eea !important;
+            font-weight: 600 !important;
+            text-shadow: none !important;
+            background: none !important;
+            -webkit-text-fill-color: #667eea !important;
+            -webkit-background-clip: initial !important;
+        }
+
+        /* 音乐波形动画 */
+        .music-wave {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .music-wave span {
+            width: 3px;
+            height: 10px;
+            background: #28a745;
+            border-radius: 2px;
+            animation: wave 1s ease-in-out infinite;
+        }
+
+        .music-wave span:nth-child(2) { animation-delay: 0.1s; }
+        .music-wave span:nth-child(3) { animation-delay: 0.2s; }
+        .music-wave span:nth-child(4) { animation-delay: 0.3s; }
+
+        @keyframes wave {
+            0%, 100% { height: 10px; }
+            50% { height: 20px; }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .comparison-container {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .drag-drop-area {
+                padding: 30px 20px;
+            }
+            
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+        }
+
+        /* 按钮组间距 */
+        .d-flex.gap-3 > * {
+            margin-right: 0 !important;
+        }
+
+        .gap-3 {
+            gap: 1rem !important;
+        }
+
+        /* 确保按钮文字颜色 */
+        .btn-primary, .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+            color: #ffffff !important;
+        }
+
+        .btn-success, .btn-success:hover, .btn-success:focus, .btn-success:active {
+            color: #ffffff !important;
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color) !important;
+        }
+
+        .btn-outline-primary:hover, .btn-outline-primary:focus, .btn-outline-primary:active {
+            color: #ffffff !important;
+        }
+
+        /* 按钮内图标和文字对齐 */
+        .btn i {
+            vertical-align: middle;
+        }
+
+        /* 音乐波形动画优化 */
+        .music-wave span {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* 加载点动画优化 */
+        .loading-dots {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* Bootstrap覆盖 */
+        .btn:focus {
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        .btn:not(:disabled):not(.disabled):active,
+        .btn:not(:disabled):not(.disabled).active {
+            transform: translateY(0) !important;
+        }
+
+        /* 深色模式支持 */
+        @media (prefers-color-scheme: dark) {
+            .container {
+                background: rgba(44, 62, 80, 0.95);
+                color: white;
+            }
+            
+            .card {
+                background: rgba(52, 73, 94, 0.9);
+                color: white;
+            }
+            
+            .file-item {
+                background: linear-gradient(135deg, rgba(52, 73, 94, 0.9) 0%, rgba(44, 62, 80, 0.9) 100%);
+                color: white;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center mb-5">
+                    <div class="mb-3">
+                        <i class="bi bi-music-note-beamed floating" style="font-size: 3rem; color: var(--primary-color);"></i>
+                    </div>
+                    <h1 class="mb-3" style="color: #2c3e50 !important; font-weight: 700 !important;">
+                        音频歌词清理工具
+                    </h1>
+                    <p class="lead mb-4" style="color: #6c757d !important;">
+                        <strong style="color: #667eea !important;">智能清理</strong>音频文件中的歌词信息标头，保留纯净的带时间戳歌词
+                    </p>
+                    <div class="d-flex justify-content-center align-items-center gap-4 text-muted">
+                        <span><i class="bi bi-check-circle text-success"></i> 支持多格式</span>
+                        <span><i class="bi bi-check-circle text-success"></i> 批量处理</span>
+                        <span><i class="bi bi-check-circle text-success"></i> 保持结构</span>
+                        <span><i class="bi bi-check-circle text-success"></i> 实时预览</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步骤指示器 -->
+        <div class="step-indicator">
+            <div class="step active" id="step1">
+                <div class="step-circle">
+                    <i class="bi bi-cloud-upload"></i>
+                </div>
+                <div><strong>上传文件</strong></div>
+                <small class="text-muted">选择音频文件或文件夹</small>
+            </div>
+            <div class="step" id="step2">
+                <div class="step-circle">
+                    <i class="bi bi-eye"></i>
+                </div>
+                <div><strong>预览效果</strong></div>
+                <small class="text-muted">查看清理前后对比</small>
+            </div>
+            <div class="step" id="step3">
+                <div class="step-circle">
+                    <i class="bi bi-gear"></i>
+                </div>
+                <div><strong>处理文件</strong></div>
+                <small class="text-muted">批量清理歌词标头</small>
+            </div>
+            <div class="step" id="step4">
+                <div class="step-circle">
+                    <i class="bi bi-download"></i>
+                </div>
+                <div><strong>下载结果</strong></div>
+                <small class="text-muted">获取处理后的文件</small>
+            </div>
+        </div>
+
+        <!-- 文件上传区域 -->
+        <div class="card mb-4" id="upload-section">
+            <div class="card-header">
+                <h5><i class="bi bi-cloud-upload me-2"></i>第一步：上传音频文件</h5>
+                <small class="opacity-75">支持单文件和文件夹批量上传</small>
+            </div>
+            <div class="card-body">
+                <div class="drag-drop-area" id="dropArea">
+                    <div class="upload-icon-container mb-4">
+                        <i class="bi bi-cloud-upload" style="font-size: 4rem;"></i>
+                        <div class="upload-animation"></div>
+                    </div>
+                    <h4 class="mb-3">拖拽文件或文件夹到此处</h4>
+                    <p class="text-muted mb-4">
+                        <i class="bi bi-music-note"></i> 支持 MP3、FLAC、M4A 格式 
+                        <span class="mx-2">•</span>
+                        <i class="bi bi-hdd"></i> 无大小限制
+                        <span class="mx-2">•</span>
+                        <i class="bi bi-folder"></i> 支持文件夹批量上传
+                    </p>
+                    <input type="file" id="fileInput" multiple accept=".mp3,.flac,.m4a" style="display: none;">
+                    <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
+                    <div class="d-flex gap-3 justify-content-center mb-3">
+                        <button type="button" class="btn btn-primary btn-lg" onclick="document.getElementById('fileInput').click()">
+                            <i class="bi bi-file-music me-2"></i>选择文件
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-lg" onclick="document.getElementById('folderInput').click()">
+                            <i class="bi bi-folder2-open me-2"></i>选择文件夹
+                        </button>
+                    </div>
+                    <div class="upload-tips">
+                        <small class="text-muted">
+                            <i class="bi bi-lightbulb"></i> 
+                            提示：可以直接拖拽整个音乐文件夹到此区域
+                        </small>
+                    </div>
+                </div>
+                <div class="progress-container mt-3">
+                    <div class="mb-2">
+                        <small id="progressText" class="text-muted">准备上传...</small>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件列表 -->
+        <div class="card mb-4" id="files-section" style="display: none;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5><i class="bi bi-list-ul me-2"></i>已上传的文件</h5>
+                    <small class="opacity-75">查看文件列表和歌词状态</small>
+                </div>
+                <button class="btn btn-outline-light btn-sm" onclick="clearFiles()">
+                    <i class="bi bi-trash me-1"></i>清空
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="filesList"></div>
+                <div class="mt-4 text-center">
+                    <button type="button" class="btn btn-success btn-lg" onclick="previewAll()" id="previewBtn" disabled>
+                        <i class="bi bi-eye me-2"></i>预览清理效果
+                        <span class="music-wave ms-2">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 预览区域 -->
+        <div class="card mb-4" id="preview-section" style="display: none;">
+            <div class="card-header">
+                <h5><i class="bi bi-eye me-2"></i>第二步：预览清理效果</h5>
+                <small class="opacity-75">查看歌词清理前后的对比效果</small>
+            </div>
+            <div class="card-body">
+                <div id="previewContent"></div>
+                <div class="mt-4 text-center">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="processFiles()" id="processBtn" disabled>
+                        <i class="bi bi-gear me-2"></i>开始处理
+                        <span class="loading-dots ms-2" style="display: none;"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 处理结果 -->
+        <div class="card mb-4" id="result-section" style="display: none;">
+            <div class="card-header">
+                <h5><i class="bi bi-check-circle me-2"></i>第三步：处理结果</h5>
+                <small class="opacity-75">查看批量处理的统计结果</small>
+            </div>
+            <div class="card-body">
+                <div id="resultContent"></div>
+            </div>
+        </div>
+
+        <!-- 下载区域 -->
+        <div class="card mb-4" id="download-section" style="display: none;">
+            <div class="card-header">
+                <h5><i class="bi bi-download me-2"></i>第四步：下载处理后的文件</h5>
+                <small class="opacity-75">获取清理后的音频文件，保持原有文件夹结构</small>
+            </div>
+            <div class="card-body">
+                <div id="downloadContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">通知</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let uploadedFiles = [];
+        let processedFiles = [];
+
+        // 初始化拖拽功能
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropArea.classList.add('dragover');
+            // 立即显示拖拽反馈
+            showProgress('检测到文件拖拽...');
+            updateProgress(0, '准备接收文件...');
+        }
+
+        function unhighlight(e) {
+            dropArea.classList.remove('dragover');
+            // 如果不是真正的drop事件，隐藏进度条
+            if (e.type === 'dragleave') {
+                setTimeout(() => {
+                    if (!dropArea.classList.contains('dragover')) {
+                        hideProgress();
+                    }
+                }, 100);
+            }
+        }
+
+        dropArea.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFiles);
+        document.getElementById('folderInput').addEventListener('change', handleFolderUpload);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = Array.from(dt.files);
+            
+            if (files.length > 0) {
+                // 检查是否是文件夹拖拽
+                const hasDirectoryStructure = files.some(file => 
+                    file.webkitRelativePath && file.webkitRelativePath.includes('/')
+                );
+                
+                if (hasDirectoryStructure) {
+                    uploadFolder(files);
+                } else {
+                    uploadFiles(files);
+                }
+            } else {
+                hideProgress();
+                showToast('没有检测到有效文件', 'warning');
+            }
+        }
+
+        function handleFiles(e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            showProgress();
+            uploadFiles(files);
+        }
+
+        function handleFolderUpload(e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            showProgress();
+            uploadFolder(files);
+        }
+
+        // 这些函数已在下面重新定义，移除重复定义
+
+        function showProgress(message = '处理中...') {
+            const progressContainer = document.querySelector('.progress-container');
+            const progressText = document.getElementById('progressText');
+            if (progressContainer) {
+                progressContainer.style.display = 'block';
+                if (progressText) {
+                    progressText.textContent = message;
+                }
+            }
+        }
+
+        function updateProgress(percent, message = '') {
+            const progressBar = document.querySelector('.progress-bar');
+            const progressText = document.getElementById('progressText');
+            if (progressBar) {
+                progressBar.style.width = percent + '%';
+                progressBar.setAttribute('aria-valuenow', percent);
+            }
+            if (progressText && message) {
+                progressText.textContent = message;
+            }
+        }
+
+        function hideProgress() {
+            const progressContainer = document.querySelector('.progress-container');
+            if (progressContainer) {
+                progressContainer.style.display = 'none';
+            }
+        }
+
+        function uploadFiles(files) {
+            const formData = new FormData();
+            files.forEach(file => {
+                formData.append('files', file);
+            });
+
+            // 显示上传进度
+            showProgress(`正在上传 ${files.length} 个文件...`);
+            
+            // 使用XMLHttpRequest来支持进度监控
+            const xhr = new XMLHttpRequest();
+            
+            // 上传进度监听
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    updateProgress(percentComplete, `上传中... ${Math.round(percentComplete)}% (${files.length} 个文件)`);
+                }
+            });
+            
+            xhr.addEventListener('load', function() {
+                if (xhr.status === 200) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        hideProgress();
+                        
+                        if (data.error) {
+                            showToast(data.error, 'error');
+                        } else {
+                            uploadedFiles = data.files;
+                            displayFiles();
+                            updateStep(2);
+                            showToast(`上传成功，共 ${data.files.length} 个文件`, 'success');
+                            
+                            if (data.warnings && data.warnings.length > 0) {
+                                showToast(`上传完成，但有 ${data.warnings.length} 个文件处理失败`, 'warning');
+                                console.warn('Upload warnings:', data.warnings);
+                            }
+                        }
+                    } catch (e) {
+                        hideProgress();
+                        showToast('解析服务器响应失败', 'error');
+                    }
+                } else {
+                    hideProgress();
+                    showToast(`上传失败: HTTP ${xhr.status}`, 'error');
+                }
+            });
+            
+            xhr.addEventListener('error', function() {
+                hideProgress();
+                showToast('上传失败: 网络错误', 'error');
+            });
+            
+            xhr.open('POST', '/upload');
+            xhr.send(formData);
+        }
+
+        function uploadFolder(files) {
+            const formData = new FormData();
+            files.forEach(file => {
+                formData.append('files', file, file.webkitRelativePath || file.name);
+            });
+
+            // 显示上传进度
+            showProgress(`正在上传文件夹 (${files.length} 个文件)...`);
+            
+            // 使用XMLHttpRequest来支持进度监控
+            const xhr = new XMLHttpRequest();
+            
+            // 上传进度监听
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    updateProgress(percentComplete, `上传中... ${Math.round(percentComplete)}% (${files.length} 个文件)`);
+                }
+            });
+            
+            xhr.addEventListener('load', function() {
+                if (xhr.status === 200) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        hideProgress();
+                        
+                        if (data.error) {
+                            showToast(data.error, 'error');
+                        } else {
+                            uploadedFiles = data.files;
+                            displayFilesWithFolders(data);
+                            updateStep(2);
+                            showToast(`文件夹上传成功，共 ${data.total_files} 个文件`, 'success');
+                            
+                            if (data.warnings && data.warnings.length > 0) {
+                                showToast(`文件夹上传完成，但有 ${data.warnings.length} 个文件处理失败`, 'warning');
+                                console.warn('Folder upload warnings:', data.warnings);
+                            }
+                        }
+                    } catch (e) {
+                        hideProgress();
+                        showToast('解析服务器响应失败', 'error');
+                    }
+                } else {
+                    hideProgress();
+                    showToast(`文件夹上传失败: HTTP ${xhr.status}`, 'error');
+                }
+            });
+            
+            xhr.addEventListener('error', function() {
+                hideProgress();
+                showToast('文件夹上传失败: 网络错误', 'error');
+            });
+            
+            xhr.open('POST', '/upload_folder');
+            xhr.send(formData);
+        }
+
+        function displayFiles() {
+            const filesList = document.getElementById('filesList');
+            filesList.innerHTML = '';
+
+            uploadedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${file.original_name}</h6>
+                            <small class="text-muted">
+                                ${file.has_lyrics ? 
+                                    '<i class="bi bi-check-circle text-success"></i> 包含歌词' : 
+                                    '<i class="bi bi-x-circle text-warning"></i> 无歌词'}
+                            </small>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="previewFile(${index})" 
+                                ${!file.has_lyrics ? 'disabled' : ''}>
+                            <i class="bi bi-eye me-1"></i>预览
+                        </button>
+                    </div>
+                `;
+                filesList.appendChild(fileItem);
+            });
+
+            document.getElementById('files-section').style.display = 'block';
+            document.getElementById('previewBtn').disabled = uploadedFiles.filter(f => f.has_lyrics).length === 0;
+        }
+
+        function displayFilesWithFolders(data) {
+            const filesList = document.getElementById('filesList');
+            filesList.innerHTML = '';
+
+            // 显示统计信息
+            const statsDiv = document.createElement('div');
+            statsDiv.className = 'alert alert-info mb-3';
+            statsDiv.innerHTML = `
+                <h6><i class="bi bi-info-circle me-2"></i>文件夹上传统计</h6>
+                <div class="row">
+                    <div class="col-sm-6">
+                        <p class="mb-1"><i class="bi bi-files me-1"></i>总文件数: <strong>${data.total_files}</strong></p>
+                    </div>
+                    <div class="col-sm-6">
+                        <p class="mb-0"><i class="bi bi-music-note me-1"></i>包含歌词: <strong>${data.files_with_lyrics}</strong></p>
+                    </div>
+                </div>
+            `;
+            filesList.appendChild(statsDiv);
+
+            // 按文件夹分组显示
+            const folderGroups = {};
+            uploadedFiles.forEach(file => {
+                const folder = file.folder || '根目录';
+                if (!folderGroups[folder]) {
+                    folderGroups[folder] = [];
+                }
+                folderGroups[folder].push(file);
+            });
+
+            Object.keys(folderGroups).forEach(folderName => {
+                const folderDiv = document.createElement('div');
+                folderDiv.className = 'mb-3';
+                
+                const folderHeader = document.createElement('div');
+                folderHeader.className = 'bg-light p-2 rounded-top border folder-header';
+                folderHeader.innerHTML = `
+                    <h6 class="mb-0">
+                        <i class="bi bi-folder me-2"></i>${folderName}
+                        <span class="badge bg-secondary ms-2">${folderGroups[folderName].length} 文件</span>
+                    </h6>
+                `;
+                folderDiv.appendChild(folderHeader);
+
+                const filesContainer = document.createElement('div');
+                filesContainer.className = 'border border-top-0 rounded-bottom';
+
+                folderGroups[folderName].forEach((file, index) => {
+                    const globalIndex = uploadedFiles.indexOf(file);
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'p-2 border-bottom';
+                    fileItem.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">${file.original_name.split('/').pop()}</h6>
+                                <small class="text-muted">
+                                    ${file.has_lyrics ? 
+                                        '<i class="bi bi-check-circle text-success"></i> 包含歌词' : 
+                                        '<i class="bi bi-x-circle text-warning"></i> 无歌词'}
+                                </small>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="previewFile(${globalIndex})" 
+                                    ${!file.has_lyrics ? 'disabled' : ''}>
+                                <i class="bi bi-eye me-1"></i>预览
+                            </button>
+                        </div>
+                    `;
+                    filesContainer.appendChild(fileItem);
+                });
+
+                folderDiv.appendChild(filesContainer);
+                filesList.appendChild(folderDiv);
+            });
+
+            document.getElementById('files-section').style.display = 'block';
+            document.getElementById('previewBtn').disabled = uploadedFiles.filter(f => f.has_lyrics).length === 0;
+        }
+
+        function previewFile(index) {
+            const file = uploadedFiles[index];
+            fetch('/preview', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filename: file.filename})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showToast(data.error, 'error');
+                } else {
+                    showPreview(file.original_name, data);
+                }
+            })
+            .catch(error => {
+                showToast('预览失败: ' + error.message, 'error');
+            });
+        }
+
+        function previewAll() {
+            const filesWithLyrics = uploadedFiles.filter(f => f.has_lyrics);
+            if (filesWithLyrics.length === 0) {
+                showToast('没有包含歌词的文件', 'warning');
+                return;
+            }
+
+            // 预览第一个有歌词的文件
+            const firstFileIndex = uploadedFiles.findIndex(f => f.has_lyrics);
+            previewFile(firstFileIndex);
+            updateStep(3);
+        }
+
+        function showPreview(filename, data) {
+            const previewContent = document.getElementById('previewContent');
+            previewContent.innerHTML = `
+                <h6>${filename}</h6>
+                <div class="comparison-container">
+                    <div>
+                        <h6 class="text-primary">原始歌词</h6>
+                        <div class="lyrics-preview">${data.original_lyrics}</div>
+                    </div>
+                    <div>
+                        <h6 class="text-success">清理后歌词</h6>
+                        <div class="lyrics-preview">${data.cleaned_lyrics}</div>
+                    </div>
+                </div>
+                ${data.removed_lines.length > 0 ? `
+                    <div class="removed-lines">
+                        <h6 class="text-warning">已移除的行 (${data.removed_count}行):</h6>
+                        <div style="font-family: monospace; white-space: pre-wrap;">${data.removed_lines.join('\n')}</div>
+                    </div>
+                ` : ''}
+            `;
+
+            document.getElementById('preview-section').style.display = 'block';
+            document.getElementById('processBtn').disabled = false;
+        }
+
+        function processFiles() {
+            const filenames = uploadedFiles.filter(f => f.has_lyrics).map(f => f.filename);
+            
+            if (filenames.length === 0) {
+                showToast('没有包含歌词的文件需要处理', 'warning');
+                return;
+            }
+            
+            // 显示处理进度
+            showProgress(`正在处理 ${filenames.length} 个文件...`);
+            updateProgress(0, '开始处理文件...');
+            
+            // 禁用处理按钮
+            const processBtn = document.getElementById('processBtn');
+            processBtn.disabled = true;
+            processBtn.innerHTML = '<i class="bi bi-gear-fill me-2"></i>处理中... <span class="spinner-border spinner-border-sm ms-2" role="status"></span>';
+            
+            fetch('/process', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filenames: filenames})
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                hideProgress();
+                
+                // 恢复按钮状态
+                processBtn.disabled = false;
+                processBtn.innerHTML = '<i class="bi bi-gear me-2"></i>开始处理';
+                
+                if (data.error) {
+                    showToast(data.error, 'error');
+                } else {
+                    processedFiles = data.processed_files;
+                    showResults(data);
+                    updateStep(4);
+                    showToast(`处理完成！成功处理 ${data.success_count} 个文件`, 'success');
+                }
+            })
+            .catch(error => {
+                hideProgress();
+                
+                // 恢复按钮状态
+                processBtn.disabled = false;
+                processBtn.innerHTML = '<i class="bi bi-gear me-2"></i>开始处理';
+                
+                showToast('处理失败: ' + error.message, 'error');
+            });
+        }
+
+        function showResults(data) {
+            const resultContent = document.getElementById('resultContent');
+            resultContent.innerHTML = `
+                <div class="alert alert-success">
+                    <h6><i class="bi bi-check-circle"></i> 处理完成</h6>
+                    <p class="mb-0">成功处理 ${data.success_count} 个文件，失败 ${data.failed_count} 个文件</p>
+                </div>
+                ${data.failed_files.length > 0 ? `
+                    <div class="alert alert-warning">
+                        <h6>处理失败的文件:</h6>
+                        <ul class="mb-0">
+                            ${data.failed_files.map(f => `<li>${f.filename}: ${f.error}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            `;
+
+            if (data.processed_files.length > 0) {
+                showDownloadSection(data.processed_files);
+            }
+
+            document.getElementById('result-section').style.display = 'block';
+        }
+
+        function showDownloadSection(files) {
+            const downloadContent = document.getElementById('downloadContent');
+            
+            // 按文件夹分组
+            const folderGroups = {};
+            files.forEach(file => {
+                const folder = file.folder || '根目录';
+                if (!folderGroups[folder]) {
+                    folderGroups[folder] = [];
+                }
+                folderGroups[folder].push(file);
+            });
+
+            let downloadHTML = `
+                <div class="mb-3">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="downloadAll()">
+                        <i class="bi bi-download me-2"></i>下载所有文件 (ZIP)
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-lg ms-3" onclick="cleanup()">
+                        <i class="bi bi-trash me-2"></i>清理临时文件
+                    </button>
+                </div>
+            `;
+
+            // 如果有多个文件夹，按文件夹显示
+            if (Object.keys(folderGroups).length > 1 || (Object.keys(folderGroups).length === 1 && !folderGroups['根目录'])) {
+                Object.keys(folderGroups).forEach(folderName => {
+                    downloadHTML += `
+                        <div class="mb-4">
+                            <div class="folder-header bg-light p-3 rounded-top border">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-folder me-2"></i>${folderName}
+                                    <span class="badge bg-secondary ms-2">${folderGroups[folderName].length} 文件</span>
+                                </h6>
+                            </div>
+                            <div class="border border-top-0 rounded-bottom">
+                                ${folderGroups[folderName].map(file => `
+                                    <div class="list-group-item d-flex justify-content-between align-items-center border-0 border-bottom">
+                                        <div>
+                                            <h6 class="mb-1">${file.display_name || file.original_filename.split('/').pop().replace(/^\d{8}_\d{6}_/, '')}</h6>
+                                            <small class="text-muted">移除了 ${file.removed_count} 行信息标头</small>
+                                        </div>
+                                        <a href="/download/${encodeURIComponent(file.processed_filename)}" class="btn btn-outline-primary btn-sm" onclick="handleSingleDownload(event, '${file.display_name || file.original_filename}')">
+                                            <i class="bi bi-download me-1"></i>下载
+                                        </a>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                // 单一文件夹或根目录，简单列表显示
+                downloadHTML += `
+                    <div class="list-group">
+                        ${files.map(file => `
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">${file.display_name || file.original_filename.replace(/^\d{8}_\d{6}_/, '')}</h6>
+                                    <small class="text-muted">移除了 ${file.removed_count} 行信息标头</small>
+                                </div>
+                                <a href="/download/${encodeURIComponent(file.processed_filename)}" class="btn btn-outline-primary btn-sm" onclick="handleSingleDownload(event, '${file.display_name || file.original_filename}')">
+                                    <i class="bi bi-download me-1"></i>下载
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            downloadContent.innerHTML = downloadHTML;
+            document.getElementById('download-section').style.display = 'block';
+        }
+
+        function downloadAll() {
+            const filenames = processedFiles.map(f => f.processed_filename);
+            
+            // 立即显示下载反馈
+            const downloadBtn = event.target;
+            const originalHTML = downloadBtn.innerHTML;
+            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = '<i class="bi bi-download me-2"></i>准备下载... <span class="spinner-border spinner-border-sm ms-2" role="status"></span>';
+            
+            // 显示进度提示
+            showProgress('正在准备下载文件...');
+            updateProgress(0, '正在打包文件...');
+            showToast('🚀 开始准备下载文件...', 'info');
+            
+            fetch('/download_all', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filenames: filenames})
+            })
+            .then(response => {
+                if (response.ok) {
+                    updateProgress(50, '正在下载文件...');
+                    return response.blob();
+                }
+                throw new Error('下载失败');
+            })
+            .then(blob => {
+                updateProgress(90, '正在保存文件...');
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `cleaned_audio_files_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                // 完成反馈
+                updateProgress(100, '下载完成！');
+                setTimeout(() => {
+                    hideProgress();
+                }, 1500);
+                
+                showToast('📥 下载完成！文件已保存到下载文件夹', 'success');
+            })
+            .catch(error => {
+                hideProgress();
+                showToast('❌ 下载失败: ' + error.message, 'error');
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = originalHTML;
+            });
+        }
+
+        function handleSingleDownload(event, filename) {
+            // 立即显示下载反馈
+            const downloadBtn = event.target;
+            const originalHTML = downloadBtn.innerHTML;
+            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = '<i class="bi bi-download me-1"></i>下载中... <span class="spinner-border spinner-border-sm ms-1" role="status"></span>';
+            
+            // 显示提示
+            showToast(`🚀 开始下载: ${filename}`, 'info');
+            
+            // 延迟恢复按钮状态，给用户足够的反馈时间
+            setTimeout(() => {
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = originalHTML;
+                showToast(`📥 ${filename} 下载完成！`, 'success');
+            }, 2000);
+            
+            // 不阻止默认的下载行为
+            return true;
+        }
+
+        function cleanup() {
+            // 立即显示清理反馈
+            const cleanupBtn = event.target;
+            const originalHTML = cleanupBtn.innerHTML;
+            cleanupBtn.disabled = true;
+            cleanupBtn.innerHTML = '<i class="bi bi-trash me-2"></i>清理中... <span class="spinner-border spinner-border-sm ms-2" role="status"></span>';
+            
+            showProgress('正在清理临时文件...');
+            updateProgress(0, '开始清理...');
+            showToast('🧹 开始清理临时文件...', 'info');
+            
+            fetch('/cleanup', {
+                method: 'POST'
+            })
+            .then(response => {
+                updateProgress(50, '清理中...');
+                return response.json();
+            })
+            .then(data => {
+                updateProgress(100, '清理完成！');
+                
+                if (data.error) {
+                    showToast('❌ ' + data.error, 'error');
+                } else {
+                    showToast('✅ 清理完成', 'success');
+                    // 重置界面
+                    setTimeout(() => {
+                        hideProgress();
+                        resetAll();
+                    }, 1000);
+                }
+            })
+            .catch(error => {
+                hideProgress();
+                showToast('❌ 清理失败: ' + error.message, 'error');
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                cleanupBtn.disabled = false;
+                cleanupBtn.innerHTML = originalHTML;
+            });
+        }
+
+        function clearFiles() {
+            uploadedFiles = [];
+            processedFiles = [];
+            document.getElementById('files-section').style.display = 'none';
+            document.getElementById('preview-section').style.display = 'none';
+            document.getElementById('result-section').style.display = 'none';
+            document.getElementById('download-section').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('folderInput').value = '';
+            updateStep(1);
+        }
+
+        function resetAll() {
+            clearFiles();
+            document.getElementById('fileInput').value = '';
+        }
+
+        function updateStep(step) {
+            // 重置所有步骤
+            for (let i = 1; i <= 4; i++) {
+                const stepEl = document.getElementById(`step${i}`);
+                stepEl.classList.remove('active', 'completed');
+                if (i < step) {
+                    stepEl.classList.add('completed');
+                } else if (i === step) {
+                    stepEl.classList.add('active');
+                }
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastBody = document.getElementById('toastBody');
+            
+            toastBody.textContent = message;
+            
+            // 设置颜色
+            toast.className = 'toast';
+            if (type === 'error') {
+                toast.classList.add('bg-danger', 'text-white');
+            } else if (type === 'success') {
+                toast.classList.add('bg-success', 'text-white');
+            } else if (type === 'warning') {
+                toast.classList.add('bg-warning');
+            }
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+    </script>
+</body>
+</html>
