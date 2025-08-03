@@ -1478,7 +1478,12 @@
                 </div>
                 ${data.failed_files.length > 0 ? `
                     <div class="alert alert-warning">
-                        <h6>处理失败的文件:</h6>
+                        <h6>
+                            处理失败的文件:
+                            <button type="button" class="btn btn-outline-warning btn-sm ms-2" onclick="exportFailedFiles(${JSON.stringify(data.failed_files)})">
+                                <i class="bi bi-download me-1"></i>导出失败文件列表
+                            </button>
+                        </h6>
                         <ul class="mb-0">
                             ${data.failed_files.map(f => `<li>${f.filename}: ${f.error}</li>`).join('')}
                         </ul>
@@ -1716,6 +1721,53 @@
                     stepEl.classList.add('active');
                 }
             }
+        }
+
+        function exportFailedFiles(failedFiles) {
+            showProgress('正在导出失败文件列表...');
+            updateProgress(0, '准备导出...');
+            
+            fetch('/export_failed_files', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    failed_files: failedFiles
+                })
+            })
+            .then(response => {
+                updateProgress(50, '生成文件...');
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || '导出失败');
+                    });
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                updateProgress(90, '正在下载...');
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `failed_files_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                updateProgress(100, '导出完成！');
+                setTimeout(() => {
+                    hideProgress();
+                }, 1500);
+                
+                showToast('📄 失败文件列表已导出！', 'success');
+            })
+            .catch(error => {
+                hideProgress();
+                showToast('❌ 导出失败: ' + error.message, 'error');
+            });
         }
 
         function showToast(message, type = 'info') {

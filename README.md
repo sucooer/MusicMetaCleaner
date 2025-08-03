@@ -98,6 +98,47 @@ python ly.py [路径] [选项]
   7. ❓ 显示帮助
 ```
 
+## 📄 失败文件导出功能
+
+### 🎯 自动导出
+处理完成后，如果有失败文件，系统会自动导出到txt文件：
+- **命令行模式**：自动生成 `failed_files_YYYYMMDD_HHMMSS.txt`
+- **Web界面**：点击"导出失败文件列表"按钮下载
+
+### 🛠️ 独立导出工具
+```bash
+# 交互模式
+python export_failed_files.py
+
+# 从日志文件读取
+python export_failed_files.py -i log.txt -o failed_files.txt
+
+# 直接指定失败文件
+python export_failed_files.py -f "file1.mp3: 错误信息" "file2.flac: 错误信息"
+
+# Windows用户
+导出失败文件.bat
+
+# Linux/Mac用户
+./export_failed_files.sh
+```
+
+### 📋 导出文件格式
+```
+MusicMetaCleaner - 失败文件列表
+==================================================
+导出时间: 2024-01-15 14:30:25
+失败文件总数: 5
+==================================================
+
+1. /path/to/file1.mp3: 文件中没有歌词
+2. /path/to/file2.flac: 保存歌词失败
+3. /path/to/file3.m4a: 文件不存在
+
+==================================================
+导出完成
+```
+
 ## 📁 项目结构
 
 ```

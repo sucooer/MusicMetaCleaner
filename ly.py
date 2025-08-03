@@ -3,9 +3,42 @@ import sys
 import argparse
 from pathlib import Path
 from lyrics_utils import LyricsProcessor
+from datetime import datetime
 
 # 创建歌词处理器实例
 processor = LyricsProcessor()
+
+def export_failed_files_to_txt(error_files, output_path="failed_files.txt"):
+    """
+    将失败文件列表导出到txt文件
+    
+    Args:
+        error_files (list): 失败文件列表
+        output_path (str): 输出文件路径
+        
+    Returns:
+        bool: 导出是否成功
+    """
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write("MusicMetaCleaner - 失败文件列表\n")
+            f.write("=" * 50 + "\n")
+            f.write(f"导出时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"失败文件总数: {len(error_files)}\n")
+            f.write("=" * 50 + "\n\n")
+            
+            for i, error_file in enumerate(error_files, 1):
+                f.write(f"{i}. {error_file}\n")
+            
+            f.write("\n" + "=" * 50 + "\n")
+            f.write("导出完成\n")
+        
+        print(f"✅ 失败文件已导出到: {output_path}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 导出失败文件时出错: {e}")
+        return False
 
 def batch_process_folder(folder_path, verbose=False, dry_run=False, backup=False, filter_ext=None):
     """批量处理文件夹中的所有音频文件"""
@@ -72,6 +105,12 @@ def batch_process_folder(folder_path, verbose=False, dry_run=False, backup=False
             print(f"   - {error_file}")
         if len(error_files) > 10:
             print(f"   ... 还有 {len(error_files) - 10} 个文件")
+    
+    # 如果有失败文件，自动导出到txt文件
+    if error_files:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_filename = f"failed_files_{timestamp}.txt"
+        export_failed_files_to_txt(error_files, output_filename)
     
     return processed_count, total_removed, error_files
 

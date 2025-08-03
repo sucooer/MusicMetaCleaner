@@ -334,6 +334,30 @@ def process_files():
         except Exception as e:
             failed_files.append({'filename': filename, 'error': str(e)})
     
+    # 如果有失败文件，自动导出到txt文件
+    if failed_files:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_filename = f"failed_files_{timestamp}.txt"
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+        
+        try:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write("MusicMetaCleaner - 失败文件列表\n")
+                f.write("=" * 50 + "\n")
+                f.write(f"导出时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"失败文件总数: {len(failed_files)}\n")
+                f.write("=" * 50 + "\n\n")
+                
+                for i, failed_file in enumerate(failed_files, 1):
+                    f.write(f"{i}. {failed_file['filename']}: {failed_file['error']}\n")
+                
+                f.write("\n" + "=" * 50 + "\n")
+                f.write("导出完成\n")
+            
+            print(f"✅ 失败文件已导出到: {output_path}")
+        except Exception as e:
+            print(f"❌ 导出失败文件时出错: {e}")
+    
     return jsonify({
         'processed_files': processed_files,
         'failed_files': failed_files,
@@ -432,6 +456,44 @@ def download_all():
     
     except Exception as e:
         return jsonify({'error': f'创建压缩包失败: {str(e)}'}), 500
+
+@app.route('/export_failed_files', methods=['POST'])
+def export_failed_files():
+    """导出失败文件列表到txt文件"""
+    data = request.get_json()
+    failed_files = data.get('failed_files', [])
+    
+    if not failed_files:
+        return jsonify({'error': '没有失败文件可导出'}), 400
+    
+    # 创建临时txt文件
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_filename = f"failed_files_{timestamp}.txt"
+    output_path = os.path.join(tempfile.gettempdir(), output_filename)
+    temp_files.append(output_path)  # 添加到清理列表
+    
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write("MusicMetaCleaner - 失败文件列表\n")
+            f.write("=" * 50 + "\n")
+            f.write(f"导出时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"失败文件总数: {len(failed_files)}\n")
+            f.write("=" * 50 + "\n\n")
+            
+            for i, failed_file in enumerate(failed_files, 1):
+                f.write(f"{i}. {failed_file['filename']}: {failed_file['error']}\n")
+            
+            f.write("\n" + "=" * 50 + "\n")
+            f.write("导出完成\n")
+        
+        return send_file(
+            output_path, 
+            as_attachment=True, 
+            download_name=output_filename
+        )
+    
+    except Exception as e:
+        return jsonify({'error': f'导出失败文件时出错: {str(e)}'}), 500
 
 @app.route('/cleanup', methods=['POST'])
 def cleanup_files():
