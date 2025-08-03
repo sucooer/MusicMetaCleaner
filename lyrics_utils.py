@@ -20,7 +20,7 @@ class LyricsProcessor:
         self.header_keywords = [
             '作词', '作曲', '编曲', '演唱', '制作', '作品', '提供', '制作人', 'Produced by',
             '和声', '配唱', '录音', '录音师', '混音', '混音师', '母带', '母带工程师',
-            '文案', '制片', '监制', 'OP', 'SP', '发行', '出品', '出品人', '策划', '统筹', '推广', '鸣谢'
+            '文案', '制片', '监制', 'OP', 'SP', '发行', '出品', '出品人', '策划', '统筹', '推广', '鸣谢', '詞：'
         ]
         
         # 支持的音频格式
@@ -146,7 +146,8 @@ class LyricsProcessor:
             backup (bool): 是否创建备份文件
             
         Returns:
-            tuple: (是否成功, 移除的行数)
+            tuple: (处理状态, 移除的行数)
+            处理状态: True=成功, False=失败, None=忽略（无歌词标签）
         """
         try:
             if not self.is_audio_file(file_path):
@@ -158,7 +159,7 @@ class LyricsProcessor:
             if not original_lyrics:
                 if verbose:
                     print(f"⏭️  无歌词标签: {os.path.basename(file_path)}")
-                return False, 0
+                return None, 0
             
             if verbose:
                 print(f"📄 处理文件: {os.path.basename(file_path)}")

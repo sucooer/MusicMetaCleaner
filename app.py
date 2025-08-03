@@ -265,6 +265,7 @@ def process_files():
     
     processed_files = []
     failed_files = []
+    ignored_files = []
     
     for filename in filenames:
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -275,7 +276,8 @@ def process_files():
         try:
             original_lyrics = get_lyrics_from_file(file_path)
             if not original_lyrics:
-                failed_files.append({'filename': filename, 'error': '文件中没有歌词'})
+                # 将没有歌词的文件标记为忽略，而不是失败
+                ignored_files.append({'filename': filename, 'reason': '文件中没有歌词标签'})
                 continue
             
             cleaned_lyrics, removed_lines = clean_lyrics(original_lyrics)
@@ -361,8 +363,10 @@ def process_files():
     return jsonify({
         'processed_files': processed_files,
         'failed_files': failed_files,
+        'ignored_files': ignored_files,
         'success_count': len(processed_files),
-        'failed_count': len(failed_files)
+        'failed_count': len(failed_files),
+        'ignored_count': len(ignored_files)
     })
 
 @app.route('/download/<path:filename>')

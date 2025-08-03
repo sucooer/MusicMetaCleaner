@@ -46,6 +46,7 @@ def batch_process_folder(folder_path, verbose=False, dry_run=False, backup=False
     total_removed = 0
     total_files = 0
     skipped_files = 0
+    ignored_count = 0
     error_files = []
     
     print(f"{'🔍 预览' if dry_run else '🎵 处理'}文件夹: {folder_path}")
@@ -75,13 +76,17 @@ def batch_process_folder(folder_path, verbose=False, dry_run=False, backup=False
                 total_files += 1
                 
                 try:
-                    success, removed_lines = processor.process_audio_file(file_path, verbose, dry_run, backup)
-                    if success:
+                    result, removed_lines = processor.process_audio_file(file_path, verbose, dry_run, backup)
+                    if result is True:  # 成功
                         processed_count += 1
                         total_removed += removed_lines
                         if not verbose and not dry_run:
                             print(f"✅ {os.path.relpath(file_path, folder_path)}")
-                    else:
+                    elif result is None:  # 忽略（无歌词标签）
+                        ignored_count += 1
+                        if verbose:
+                            print(f"⏭️  忽略（无歌词标签）: {os.path.relpath(file_path, folder_path)}")
+                    else:  # 失败
                         error_files.append(file_path)
                 except Exception as e:
                     error_files.append(f"{file_path}: {str(e)}")
@@ -93,6 +98,8 @@ def batch_process_folder(folder_path, verbose=False, dry_run=False, backup=False
     print(f"📊 {'预览' if dry_run else '处理'}统计:")
     print(f"   🎵 音频文件总数: {total_files}")
     print(f"   ✅ {'预览' if dry_run else '处理'}成功: {processed_count}")
+    if ignored_count > 0:
+        print(f"   ⏭️  忽略文件（无歌词标签）: {ignored_count}")
     if skipped_files > 0:
         print(f"   ⏭️  跳过文件: {skipped_files}")
     if error_files:

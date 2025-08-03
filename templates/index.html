@@ -1474,8 +1474,16 @@
             resultContent.innerHTML = `
                 <div class="alert alert-success">
                     <h6><i class="bi bi-check-circle"></i> 处理完成</h6>
-                    <p class="mb-0">成功处理 ${data.success_count} 个文件，失败 ${data.failed_count} 个文件</p>
+                    <p class="mb-0">成功处理 ${data.success_count} 个文件，失败 ${data.failed_count} 个文件${data.ignored_count > 0 ? `，忽略 ${data.ignored_count} 个文件` : ''}</p>
                 </div>
+                ${data.ignored_files && data.ignored_files.length > 0 ? `
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> 忽略的文件（无歌词标签）:</h6>
+                        <ul class="mb-0">
+                            ${data.ignored_files.map(f => `<li>${f.filename}: ${f.reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
                 ${data.failed_files.length > 0 ? `
                     <div class="alert alert-warning">
                         <h6>
