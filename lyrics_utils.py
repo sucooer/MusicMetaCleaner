@@ -18,14 +18,39 @@ class LyricsProcessor:
     def __init__(self):
         # 扩展所有常见杂项关键词
         self.header_keywords = [
-            '作词', '作曲', '编曲', '演唱', '制作', '作品', '提供', '制作人', 'Produced by',
-            '和声', '配唱', '录音', '录音师', '混音', '混音师', '母带', '母带工程师',
-            '文案', '制片', '监制', 'OP', 'SP', '发行', '出品', '出品人', '策划', '统筹', '推广', '鸣谢', '詞：', '編曲', '詩曲', 
-            '词', '曲', '作詞' , '制作人'# 添加单字关键词
-            'Lyrics by', 'Composed by',  # 添加英文关键词
-            'Lyrics by:', 'Composed by:'  # 添加带冒号的英文关键词
+            # 中文常见元信息关键词
+            '作词', '作词：', '词', '词：', '填词', '填词：', '歌词', '歌词：',
+            '作曲', '作曲：', '曲', '曲：', '谱曲', '谱曲：', '词曲', '词曲：',
+            '编曲', '编曲：', '配器', '配器：', '和声', '和声：', '和音', '和音：', '配唱', '配唱：',
+            '演唱', '演唱：', '歌手', '歌手：', '主唱', '主唱：', '合唱', '合唱：',
+            '制作', '制作：', '制作人', '制作人：', '监制', '监制：', '制片', '制片：',
+            '录音', '录音：', '录音师', '录音师：', '录音棚', '录音棚：', '录音室', '录音室：',
+            '混音', '混音：', '缩混', '缩混：', '混音师', '混音师：', '后期', '后期：',
+            '母带', '母带：', '母带工程师', '母带工程师：', '母带处理', '母带处理：',
+            '文案', '文案：', '策划', '策划：', '统筹', '统筹：', '推广', '推广：', '宣传', '宣传：', '企划', '企划：',
+            '发行', '发行：', '发行方', '发行方：', '发行公司', '发行公司：',
+            '出品', '出品：', '出品人', '出品人：', '出品公司', '出品公司：', '唱片公司', '唱片公司：',
+            '版权', '版权：', '版权所有', '版权归', '授权', '授权：', '未经许可', '禁止转载',
+            '鸣谢', '鸣谢：', '特别鸣谢', '特别鸣谢：', '提供', '提供：', '作品', '作品：',
+            '词作者', '词作者：', '曲作者', '曲作者：', '编者', '编者：',
+            '翻译', '翻译：', '译者', '译者：', '歌词翻译', '歌词翻译：', '音译', '音译：',
+            'LRC', 'LRC：', 'lrc', 'lrc：', '歌词制作', '歌词制作：', '歌词编辑', '歌词编辑：',
+            'OP', 'SP', '詞：', '詞', '作詞', '作詞：', '編曲', '編曲：', '詩曲',
+
+            # 英文常见元信息关键词
+            'Produced by', 'Lyrics by', 'Composed by', 'Lyrics by:', 'Composed by:',
+            'Lyricist', 'Composer', 'Arranger', 'Arrangement', 'Written by', 'Music by', 'Words by',
+            'Artist', 'Singer', 'Vocal', 'Vocals', 'Performed by', 'Feat.', 'Featuring',
+            'Producer', 'Executive Producer', 'Co-Producer', 'Production',
+            'Recording', 'Recorded by', 'Tracking', 'Engineered by', 'Audio Engineer',
+            'Mixed by', 'Mixing', 'Mix Engineer', 'Mastered by', 'Mastering', 'Remastered by',
+            'Chorus', 'Background Vocal', 'Backing Vocal', 'Harmony',
+            'Album', 'Title', 'Song', 'Track', 'Disc', 'Version', 'Original', 'Remix',
+            'Publisher', 'Publishing', 'Label', 'Distributed by', 'Distribution',
+            'Copyright', 'All Rights Reserved', 'Licensed by', 'ISRC',
+            'Transcribed by', 'Translated by', 'Subtitle', 'Subtitles', 'Source'
         ]
-        
+        self.header_keywords_lower = [kw.lower() for kw in self.header_keywords]        
         # 支持的音频格式
         self.supported_formats = {'.mp3', '.flac', '.m4a'}
     
@@ -43,17 +68,43 @@ class LyricsProcessor:
         if not lyrics_text:
             return "", []
         
-        lines = lyrics_text.split('\n')
+        # 兼容 \n / \r\n / \r 各种换行
+        lines = lyrics_text.splitlines()
         pure_lyrics_lines = []
         removed_lines = []
         
         for line in lines:
-            # 检查是否包含时间戳 [xx:xx.xx]
-            has_timestamp = re.search(r'\[\d+:\d+\.\d+\]', line) is not None
-            # 提取时间戳后的内容
-            content_after_timestamp = re.sub(r'^\[\d+:\d+\.\d+\]', '', line).strip()
-            # 检查是否以杂项关键词开头
-            has_header_keyword = any(content_after_timestamp.startswith(keyword) for keyword in self.header_keywords)
+            line_for_match = line.lstrip('\ufeff')  # 兼容部分歌词开头 BOM
+            timestamp_match = re.match(
+                r'^\s*\[(\d{1,2}):(\d{1,2})(?:[.:](\d{1,3}))?\]\s*(.*)$',
+                line_for_match
+            )
+
+            # 移除 00:00.xx 的标题元信息行，例如 [00:00.10]不如这样 - 陈奕迅
+            if timestamp_match:
+                minute = int(timestamp_match.group(1))
+                second = int(timestamp_match.group(2))
+                content = timestamp_match.group(4).strip()
+
+                if minute == 0 and second == 0:
+                    is_title_artist = re.search(r'.+\s*[-—–－]\s*.+', content) is not None
+                    if content == "" or is_title_artist:
+                        removed_lines.append(line)
+                        if verbose:
+                            print(f"移除行: {line}")
+                        continue
+
+            timestamp_prefix_pattern = r'^(?:\s*\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\])+\s*'
+            # 检查是否包含时间戳 [xx:xx.xx] / [xx:xx]
+            has_timestamp = re.search(r'\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\]', line_for_match) is not None
+            # 提取一个或多个前置时间戳后的内容
+            content_after_timestamp = re.sub(timestamp_prefix_pattern, '', line_for_match).strip()
+            # 检查是否以杂项关键词开头（英文大小写不敏感）
+            content_after_timestamp_lower = content_after_timestamp.lower()
+            has_header_keyword = any(
+                content_after_timestamp_lower.startswith(keyword)
+                for keyword in self.header_keywords_lower
+            )
             
             # 如果有时间戳且有杂项关键词，则跳过
             if has_timestamp and has_header_keyword:
@@ -243,3 +294,4 @@ get_lyrics_from_file = lyrics_processor.get_lyrics_from_file
 save_lyrics_to_file = lyrics_processor.save_lyrics_to_file
 is_audio_file = lyrics_processor.is_audio_file
 process_audio_file = lyrics_processor.process_audio_file
+
