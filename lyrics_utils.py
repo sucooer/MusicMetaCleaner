@@ -48,7 +48,9 @@ class LyricsProcessor:
             'Album', 'Title', 'Song', 'Track', 'Disc', 'Version', 'Original', 'Remix',
             'Publisher', 'Publishing', 'Label', 'Distributed by', 'Distribution',
             'Copyright', 'All Rights Reserved', 'Licensed by', 'ISRC',
-            'Transcribed by', 'Translated by', 'Subtitle', 'Subtitles', 'Source'
+            'Transcribed by', 'Translated by', 'Subtitle', 'Subtitles', 'Source',
+            'Orchestration by', 'Drum Programming', 'Drums by', 'Violin and Viola by',
+            'Vocals recorded by', '©'
         ]
         self.header_keywords_lower = [kw.lower() for kw in self.header_keywords]        
         # 支持的音频格式
@@ -75,6 +77,14 @@ class LyricsProcessor:
         
         for line in lines:
             line_for_match = line.lstrip('\ufeff')  # 兼容部分歌词开头 BOM
+
+            # 移除 LRC 头部标签，如 [ti:] [ar:] [al:] [by:] [offset:]
+            if re.search(r'^\s*\[(ti|ar|al|by|offset|re|ve|kana|language|length|id):.*\]\s*$', line_for_match, re.IGNORECASE):
+                removed_lines.append(line)
+                if verbose:
+                    print(f"移除行: {line}")
+                continue
+
             timestamp_match = re.match(
                 r'^\s*\[(\d{1,2}):(\d{1,2})(?:[.:](\d{1,3}))?\]\s*(.*)$',
                 line_for_match
