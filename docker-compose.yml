@@ -1,0 +1,10 @@
+services:
+  musicmetacleaner:
+    build: .
+    container_name: music-metac-leaner
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./processed:/app/processed
+    restart: unless-stopped

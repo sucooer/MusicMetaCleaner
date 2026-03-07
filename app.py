@@ -7,7 +7,7 @@ import atexit
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
-from lyrics_utils import clean_lyrics, get_lyrics_from_file, save_lyrics_to_file, is_audio_file
+from lyrics_utils import clean_lyrics, get_lyrics_from_file, save_lyrics_to_file, is_audio_file, process_audio_file
 
 app = Flask(__name__)
 # app.config['MAX_CONTENT_LENGTH'] = None  # 不限制上传大小
@@ -50,6 +50,27 @@ def request_entity_too_large(error):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+def _normalize_filter_ext(filter_ext_raw):
+    """标准化扩展名过滤参数"""
+    if not filter_ext_raw:
+        return None
+
+    if isinstance(filter_ext_raw, str):
+        items = [item.strip().lower() for item in filter_ext_raw.split(',') if item.strip()]
+    elif isinstance(filter_ext_raw, list):
+        items = [str(item).strip().lower() for item in filter_ext_raw if str(item).strip()]
+    else:
+        return None
+
+    normalized = []
+    for ext in items:
+        if not ext.startswith('.'):
+            ext = '.' + ext
+        normalized.append(ext)
+
+    return sorted(set(normalized)) if normalized else None
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
@@ -369,6 +390,129 @@ def process_files():
         'ignored_count': len(ignored_files)
     })
 
+
+@app.route('/process_path', methods=['POST'])
+def process_path():
+    """按服务器路径直接处理文件或文件夹"""
+    try:
+        data = request.get_json(silent=True) or {}
+        target_path = str(data.get('path', '')).strip().strip('"')
+        dry_run = bool(data.get('dry_run', False))
+        backup = bool(data.get('backup', False))
+        filter_ext = _normalize_filter_ext(data.get('filter_ext'))
+
+        if not target_path:
+            return jsonify({'error': '路径不能为空'}), 400
+
+        abs_target_path = os.path.abspath(target_path)
+
+        if not os.path.exists(abs_target_path):
+            return jsonify({'error': f'路径不存在: {abs_target_path}'}), 404
+
+        # 可选的路径白名单（用于生产环境安全控制）
+        allowed_root = os.getenv('MUSIC_CLEANER_ALLOWED_PATH', '').strip()
+        if allowed_root:
+            abs_allowed_root = os.path.abspath(allowed_root)
+            try:
+                in_allowed_root = os.path.commonpath([abs_target_path, abs_allowed_root]) == abs_allowed_root
+            except ValueError:
+                in_allowed_root = False
+
+            if not in_allowed_root:
+                return jsonify({
+                    'error': '路径不在允许范围内',
+                    'allowed_root': abs_allowed_root
+                }), 403
+
+        def should_process_file(file_path):
+            if not is_audio_file(file_path):
+                return False
+            if filter_ext:
+                return os.path.splitext(file_path)[1].lower() in filter_ext
+            return True
+
+        result = {
+            'target_path': abs_target_path,
+            'dry_run': dry_run,
+            'backup': backup,
+            'filter_ext': filter_ext,
+            'total_audio_files': 0,
+            'success_count': 0,
+            'failed_count': 0,
+            'ignored_count': 0,
+            'total_removed': 0,
+            'processed_files': [],
+            'failed_files': [],
+            'ignored_files': []
+        }
+
+        if os.path.isfile(abs_target_path):
+            if not should_process_file(abs_target_path):
+                return jsonify({'error': '该文件不是可处理的音频格式，或不在扩展名过滤范围内'}), 400
+
+            result['total_audio_files'] = 1
+            state, removed_lines = process_audio_file(abs_target_path, verbose=False, dry_run=dry_run, backup=backup)
+            display_name = os.path.basename(abs_target_path)
+
+            if state is True:
+                result['success_count'] = 1
+                result['total_removed'] = removed_lines
+                result['processed_files'].append({
+                    'path': abs_target_path,
+                    'display_name': display_name,
+                    'removed_count': removed_lines
+                })
+            elif state is None:
+                result['ignored_count'] = 1
+                result['ignored_files'].append({
+                    'filename': abs_target_path,
+                    'reason': '文件中没有歌词标签'
+                })
+            else:
+                result['failed_count'] = 1
+                result['failed_files'].append({
+                    'filename': abs_target_path,
+                    'error': '处理失败'
+                })
+
+            return jsonify(result)
+
+        # 文件夹模式
+        for root, dirs, files in os.walk(abs_target_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if not should_process_file(file_path):
+                    continue
+
+                result['total_audio_files'] += 1
+                state, removed_lines = process_audio_file(file_path, verbose=False, dry_run=dry_run, backup=backup)
+                rel_path = os.path.relpath(file_path, abs_target_path)
+
+                if state is True:
+                    result['success_count'] += 1
+                    result['total_removed'] += removed_lines
+                    result['processed_files'].append({
+                        'path': file_path,
+                        'display_name': rel_path,
+                        'removed_count': removed_lines
+                    })
+                elif state is None:
+                    result['ignored_count'] += 1
+                    result['ignored_files'].append({
+                        'filename': rel_path,
+                        'reason': '文件中没有歌词标签'
+                    })
+                else:
+                    result['failed_count'] += 1
+                    result['failed_files'].append({
+                        'filename': rel_path,
+                        'error': '处理失败'
+                    })
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({'error': f'路径处理失败: {str(e)}'}), 500
 @app.route('/download/<path:filename>')
 def download_file(filename):
     """下载处理后的文件"""

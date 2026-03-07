@@ -935,6 +935,51 @@
             </div>
         </div>
 
+        <!-- 路径执行模式 -->
+        <div class="card mb-4" id="path-mode-section">
+            <div class="card-header">
+                <h5><i class="bi bi-terminal me-2"></i>快速模式：按服务器路径执行</h5>
+                <small class="opacity-75">无需上传文件，直接处理服务器/容器内路径</small>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="serverPathInput" class="form-label">目标路径</label>
+                    <input type="text" class="form-control" id="serverPathInput" placeholder="例如: /music 或 /app/uploads">
+                    <div class="form-text">提示：Docker 内请填写容器路径（如 /app/uploads）</div>
+                </div>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label for="pathFilterExtInput" class="form-label">扩展名过滤（可选）</label>
+                        <input type="text" class="form-control" id="pathFilterExtInput" placeholder=".mp3,.flac,.m4a">
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" id="pathDryRunInput" checked>
+                            <label class="form-check-label" for="pathDryRunInput">预览模式（不改文件）</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" id="pathBackupInput">
+                            <label class="form-check-label" for="pathBackupInput">备份原文件</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 text-center">
+                    <button type="button" class="btn btn-primary btn-lg" id="pathProcessBtn" onclick="processPathMode()">
+                        <i class="bi bi-play-circle me-2"></i>按路径开始处理
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4" id="path-result-section" style="display: none;">
+            <div class="card-header">
+                <h5><i class="bi bi-terminal me-2"></i>路径执行结果</h5>
+                <small class="opacity-75">直接处理服务器路径后的统计信息</small>
+            </div>
+            <div class="card-body" id="pathResultContent"></div>
+        </div>
         <!-- 文件列表 -->
         <div class="card mb-4" id="files-section" style="display: none;">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -1469,6 +1514,125 @@
             });
         }
 
+        function parseFilterExtInput(rawValue) {
+            if (!rawValue) return null;
+            const items = rawValue
+                .split(',')
+                .map(item => item.trim().toLowerCase())
+                .filter(Boolean);
+
+            const normalized = items.map(ext => ext.startsWith('.') ? ext : `.${ext}`);
+            return normalized.length > 0 ? normalized : null;
+        }
+
+        function processPathMode() {
+            const pathInput = document.getElementById('serverPathInput');
+            const filterInput = document.getElementById('pathFilterExtInput');
+            const dryRunInput = document.getElementById('pathDryRunInput');
+            const backupInput = document.getElementById('pathBackupInput');
+            const pathProcessBtn = document.getElementById('pathProcessBtn');
+
+            const targetPath = pathInput.value.trim();
+            if (!targetPath) {
+                showToast('请输入要处理的路径', 'warning');
+                pathInput.focus();
+                return;
+            }
+
+            const payload = {
+                path: targetPath,
+                dry_run: dryRunInput.checked,
+                backup: backupInput.checked,
+                filter_ext: parseFilterExtInput(filterInput.value.trim())
+            };
+
+            const originalHTML = pathProcessBtn.innerHTML;
+            pathProcessBtn.disabled = true;
+            pathProcessBtn.innerHTML = '<i class="bi bi-gear-fill me-2"></i>处理中... <span class="spinner-border spinner-border-sm ms-2" role="status"></span>';
+
+            showProgress(`正在按路径处理: ${targetPath}`);
+            updateProgress(10, '提交任务中...');
+
+            fetch('/process_path', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(async response => {
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+                return data;
+            })
+            .then(data => {
+                updateProgress(90, '正在整理结果...');
+                showPathResults(data);
+                updateProgress(100, '处理完成');
+                setTimeout(hideProgress, 800);
+
+                const modeText = data.dry_run ? '预览完成' : '处理完成';
+                showToast(`${modeText}：成功 ${data.success_count}，失败 ${data.failed_count}，忽略 ${data.ignored_count}`, 'success');
+            })
+            .catch(error => {
+                hideProgress();
+                showToast('路径处理失败: ' + error.message, 'error');
+            })
+            .finally(() => {
+                pathProcessBtn.disabled = false;
+                pathProcessBtn.innerHTML = originalHTML;
+            });
+        }
+
+        function showPathResults(data) {
+            const pathResultContent = document.getElementById('pathResultContent');
+
+            const processedPreview = (data.processed_files || []).slice(0, 50);
+            const processedHtml = processedPreview.length > 0 ? `
+                <div class="alert alert-light border">
+                    <h6><i class="bi bi-list-check"></i> 已处理文件（最多显示 50 条）</h6>
+                    <ul class="mb-0" style="max-height: 260px; overflow-y: auto;">
+                        ${processedPreview.map(f => `<li>${f.display_name}（移除 ${f.removed_count} 行）</li>`).join('')}
+                    </ul>
+                    ${(data.processed_files || []).length > 50 ? `<small class="text-muted">还有 ${(data.processed_files || []).length - 50} 个文件未展示</small>` : ''}
+                </div>
+            ` : '';
+
+            pathResultContent.innerHTML = `
+                <div class="alert alert-success">
+                    <h6><i class="bi bi-check-circle"></i> 路径执行完成</h6>
+                    <p class="mb-0">
+                        模式：${data.dry_run ? '预览（不修改文件）' : '正式处理'}；
+                        总音频文件 ${data.total_audio_files}，成功 ${data.success_count}，失败 ${data.failed_count}，忽略 ${data.ignored_count}，总移除 ${data.total_removed} 行
+                    </p>
+                    <small class="text-muted d-block mt-2">路径：${data.target_path}</small>
+                </div>
+                ${data.failed_files && data.failed_files.length > 0 ? `
+                    <div class="alert alert-warning">
+                        <h6>
+                            处理失败的文件:
+                            <button type="button" class="btn btn-outline-warning btn-sm ms-2" onclick='exportFailedFiles(${JSON.stringify(data.failed_files)})'>
+                                <i class="bi bi-download me-1"></i>导出失败文件列表
+                            </button>
+                        </h6>
+                        <ul class="mb-0">
+                            ${data.failed_files.map(f => `<li>${f.filename}: ${f.error}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+                ${data.ignored_files && data.ignored_files.length > 0 ? `
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> 忽略文件（无歌词标签）</h6>
+                        <ul class="mb-0">
+                            ${data.ignored_files.map(f => `<li>${f.filename}: ${f.reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+                ${processedHtml}
+            `;
+
+            document.getElementById('path-result-section').style.display = 'block';
+        }
         function showResults(data) {
             const resultContent = document.getElementById('resultContent');
             resultContent.innerHTML = `
@@ -1708,6 +1872,8 @@
             document.getElementById('preview-section').style.display = 'none';
             document.getElementById('result-section').style.display = 'none';
             document.getElementById('download-section').style.display = 'none';
+            
+            document.getElementById('path-result-section').style.display = 'none';
             document.getElementById('fileInput').value = '';
             document.getElementById('folderInput').value = '';
             updateStep(1);
@@ -1800,3 +1966,4 @@
     </script>
 </body>
 </html>
+
