@@ -236,19 +236,22 @@
 
         .dashboard.mode-upload .upload-panel {
             grid-column: 1;
-            grid-row: 2;
+            grid-row: 1;
+            height: auto;
         }
 
         .dashboard.mode-upload .result-download-panel {
             grid-column: 1;
-            grid-row: 1;
-            height: 100%;
+            grid-row: 2;
+            height: auto;
+            min-height: clamp(280px, 34vh, 440px);
         }
 
         .dashboard.mode-upload .list-preview-panel {
             grid-column: 2;
             grid-row: 1 / span 2;
-            height: 100%;
+            height: auto;
+            min-height: clamp(410px, 52vh, 600px);
         }
 
         .dashboard.mode-upload .panel {
@@ -257,6 +260,15 @@
 
         .dashboard.mode-upload .panel-body {
             overflow: auto;
+        }
+
+        .dashboard.mode-upload .upload-panel .panel-body {
+            overflow: visible;
+            padding: 14px;
+        }
+
+        .dashboard.mode-upload .upload-panel {
+            overflow: visible;
         }
 
         .span-2 {
@@ -317,7 +329,7 @@
             border: 2px dashed rgba(148, 163, 184, 0.45);
             border-radius: 10px;
             background: rgba(15, 23, 42, 0.45);
-            min-height: 82px;
+            min-height: 116px;
             padding: 10px;
             display: flex;
             flex-direction: column;
@@ -865,7 +877,7 @@
         </section>
         </div>
         <div class="flow" v-else>
-        <section class="panel result-download-panel">
+        <section class="panel upload-panel">
             <div class="panel-head">
                 <h3><i class="bi bi-cloud-upload"></i>上传</h3>
                 <button class="btn btn-outline-secondary compact-btn" @click="clearUploads">清空上传</button>
@@ -887,13 +899,6 @@
                     <button class="btn btn-outline-primary compact-btn" @click="chooseFolder">
                         <i class="bi bi-folder2-open me-1"></i>选择文件夹
                     </button>
-                </div>
-                <input ref="fileInput" type="file" multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFilesSelected">
-                <input ref="folderInput" type="file" webkitdirectory directory multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFolderSelected">
-                <div class="muted" v-if="uploadFolderStats">
-                    文件夹上传：总 [[ uploadFolderStats.total_files ]]，含歌词 [[ uploadFolderStats.files_with_lyrics ]]
-                </div>
-                <div class="inline-actions mt-2">
                     <button class="btn btn-success compact-btn" :disabled="filesWithLyrics.length === 0" @click="previewFirstWithLyrics">
                         <i class="bi bi-eye me-1"></i>预览首个可处理文件
                     </button>
@@ -901,9 +906,14 @@
                         <i class="bi bi-gear me-1"></i>处理全部可处理文件
                     </button>
                 </div>
+                <input ref="fileInput" type="file" multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFilesSelected">
+                <input ref="folderInput" type="file" webkitdirectory directory multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFolderSelected">
+                <div class="muted" v-if="uploadFolderStats">
+                    文件夹上传：总 [[ uploadFolderStats.total_files ]]，含歌词 [[ uploadFolderStats.files_with_lyrics ]]
+                </div>
             </div>
         </section>
-        <section class="panel">
+        <section class="panel result-download-panel">
             <div class="panel-head">
                 <h3><i class="bi bi-check-circle"></i>处理结果与下载</h3>
                 <span class="muted" v-if="processResult">最近一次批处理统计</span>
