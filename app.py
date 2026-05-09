@@ -4,6 +4,7 @@ import zipfile
 import tempfile
 import shutil
 import atexit
+import re
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
@@ -23,6 +24,19 @@ temp_files = []
 
 # 文件名映射表：存储内部文件名到原始文件名的映射
 filename_mapping = {}
+
+
+def _normalize_new_filename(new_name, original_ext=''):
+    """标准化重命名输入，防止路径注入并保留扩展名"""
+    name = str(new_name or '').strip().strip('"').strip("'")
+    name = os.path.basename(name)
+    name = re.sub(r'[\\/:\*\?"<>\|\x00-\x1f]+', '_', name).strip()
+    if not name:
+        return None
+    base, ext = os.path.splitext(name)
+    if not ext and original_ext:
+        return name + original_ext
+    return name
 
 def cleanup_temp_files():
     """清理临时文件"""
@@ -431,6 +445,16 @@ def process_path():
                 return os.path.splitext(file_path)[1].lower() in filter_ext
             return True
 
+        def get_removed_line_details(file_path):
+            """仅用于预览模式：返回将被移除的具体歌词行"""
+            if not dry_run:
+                return []
+            original_lyrics = get_lyrics_from_file(file_path)
+            if not original_lyrics:
+                return []
+            _, removed_line_items = clean_lyrics(original_lyrics)
+            return removed_line_items
+
         result = {
             'target_path': abs_target_path,
             'dry_run': dry_run,
@@ -455,12 +479,14 @@ def process_path():
             display_name = os.path.basename(abs_target_path)
 
             if state is True:
+                removed_line_items = get_removed_line_details(abs_target_path)
                 result['success_count'] = 1
                 result['total_removed'] = removed_lines
                 result['processed_files'].append({
                     'path': abs_target_path,
                     'display_name': display_name,
-                    'removed_count': removed_lines
+                    'removed_count': removed_lines,
+                    'removed_lines': removed_line_items
                 })
             elif state is None:
                 result['ignored_count'] = 1
@@ -489,12 +515,14 @@ def process_path():
                 rel_path = os.path.relpath(file_path, abs_target_path)
 
                 if state is True:
+                    removed_line_items = get_removed_line_details(file_path)
                     result['success_count'] += 1
                     result['total_removed'] += removed_lines
                     result['processed_files'].append({
                         'path': file_path,
                         'display_name': rel_path,
-                        'removed_count': removed_lines
+                        'removed_count': removed_lines,
+                        'removed_lines': removed_line_items
                     })
                 elif state is None:
                     result['ignored_count'] += 1
@@ -513,6 +541,175 @@ def process_path():
 
     except Exception as e:
         return jsonify({'error': f'路径处理失败: {str(e)}'}), 500
+
+
+@app.route('/browse_path', methods=['POST'])
+def browse_path():
+    """浏览服务器目录，用于路径模式手动选择"""
+    try:
+        data = request.get_json(silent=True) or {}
+        requested_path = str(data.get('path', '')).strip().strip('"')
+
+        allowed_root = os.getenv('MUSIC_CLEANER_ALLOWED_PATH', '').strip()
+        abs_allowed_root = os.path.abspath(allowed_root) if allowed_root else None
+
+        if requested_path:
+            current_path = os.path.abspath(requested_path)
+        elif abs_allowed_root:
+            current_path = abs_allowed_root
+        else:
+            current_path = os.path.abspath('/')
+
+        if not os.path.exists(current_path):
+            return jsonify({'error': f'路径不存在: {current_path}'}), 404
+
+        if not os.path.isdir(current_path):
+            current_path = os.path.dirname(current_path)
+
+        if abs_allowed_root:
+            try:
+                in_allowed_root = os.path.commonpath([current_path, abs_allowed_root]) == abs_allowed_root
+            except ValueError:
+                in_allowed_root = False
+            if not in_allowed_root:
+                return jsonify({
+                    'error': '路径不在允许范围内',
+                    'allowed_root': abs_allowed_root
+                }), 403
+
+        parent_path = None
+        try:
+            parent_candidate = os.path.abspath(os.path.join(current_path, '..'))
+            if parent_candidate != current_path:
+                if abs_allowed_root:
+                    in_root = os.path.commonpath([parent_candidate, abs_allowed_root]) == abs_allowed_root
+                    if in_root:
+                        parent_path = parent_candidate
+                else:
+                    parent_path = parent_candidate
+        except Exception:
+            parent_path = None
+
+        directories = []
+        try:
+            with os.scandir(current_path) as entries:
+                for entry in entries:
+                    if not entry.is_dir(follow_symlinks=False):
+                        continue
+                    full_path = os.path.abspath(entry.path)
+                    if abs_allowed_root:
+                        try:
+                            in_root = os.path.commonpath([full_path, abs_allowed_root]) == abs_allowed_root
+                        except ValueError:
+                            in_root = False
+                        if not in_root:
+                            continue
+                    directories.append({
+                        'name': entry.name,
+                        'path': full_path
+                    })
+        except PermissionError:
+            return jsonify({'error': f'无权限访问目录: {current_path}'}), 403
+
+        directories.sort(key=lambda d: d['name'].lower())
+
+        return jsonify({
+            'current_path': current_path,
+            'parent_path': parent_path,
+            'directories': directories,
+            'allowed_root': abs_allowed_root
+        })
+    except Exception as e:
+        return jsonify({'error': f'目录浏览失败: {str(e)}'}), 500
+
+
+@app.route('/rename_processed', methods=['POST'])
+def rename_processed():
+    """重命名上传模式处理后的文件（processed 目录内）"""
+    try:
+        data = request.get_json(silent=True) or {}
+        processed_filename = str(data.get('processed_filename', '')).strip()
+        new_name_input = data.get('new_name')
+
+        if not processed_filename:
+            return jsonify({'error': '文件名不能为空'}), 400
+
+        src_path = os.path.abspath(os.path.join(app.config['PROCESSED_FOLDER'], processed_filename))
+        processed_root = os.path.abspath(app.config['PROCESSED_FOLDER'])
+        if os.path.commonpath([src_path, processed_root]) != processed_root:
+            return jsonify({'error': '非法文件路径'}), 400
+        if not os.path.isfile(src_path):
+            return jsonify({'error': '文件不存在'}), 404
+
+        rel_dir = os.path.dirname(processed_filename)
+        src_ext = os.path.splitext(src_path)[1]
+        new_name = _normalize_new_filename(new_name_input, src_ext)
+        if not new_name:
+            return jsonify({'error': '新文件名无效'}), 400
+
+        new_rel = os.path.join(rel_dir, new_name) if rel_dir else new_name
+        dst_path = os.path.abspath(os.path.join(app.config['PROCESSED_FOLDER'], new_rel))
+        if os.path.commonpath([dst_path, processed_root]) != processed_root:
+            return jsonify({'error': '非法目标路径'}), 400
+        if os.path.exists(dst_path):
+            return jsonify({'error': '目标文件名已存在'}), 409
+
+        os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+        os.rename(src_path, dst_path)
+
+        return jsonify({
+            'processed_filename': new_rel,
+            'display_name': new_name
+        })
+    except Exception as e:
+        return jsonify({'error': f'重命名失败: {str(e)}'}), 500
+
+
+@app.route('/rename_path_file', methods=['POST'])
+def rename_path_file():
+    """重命名路径模式中的服务器文件"""
+    try:
+        data = request.get_json(silent=True) or {}
+        file_path = str(data.get('path', '')).strip().strip('"')
+        new_name_input = data.get('new_name')
+
+        if not file_path:
+            return jsonify({'error': '路径不能为空'}), 400
+
+        abs_file_path = os.path.abspath(file_path)
+        if not os.path.isfile(abs_file_path):
+            return jsonify({'error': '文件不存在'}), 404
+
+        allowed_root = os.getenv('MUSIC_CLEANER_ALLOWED_PATH', '').strip()
+        if allowed_root:
+            abs_allowed_root = os.path.abspath(allowed_root)
+            try:
+                in_allowed_root = os.path.commonpath([abs_file_path, abs_allowed_root]) == abs_allowed_root
+            except ValueError:
+                in_allowed_root = False
+            if not in_allowed_root:
+                return jsonify({'error': '路径不在允许范围内', 'allowed_root': abs_allowed_root}), 403
+
+        src_ext = os.path.splitext(abs_file_path)[1]
+        new_name = _normalize_new_filename(new_name_input, src_ext)
+        if not new_name:
+            return jsonify({'error': '新文件名无效'}), 400
+
+        dst_path = os.path.join(os.path.dirname(abs_file_path), new_name)
+        if os.path.abspath(dst_path) == abs_file_path:
+            return jsonify({'error': '新文件名与原文件相同'}), 400
+        if os.path.exists(dst_path):
+            return jsonify({'error': '目标文件名已存在'}), 409
+
+        os.rename(abs_file_path, dst_path)
+        return jsonify({
+            'path': os.path.abspath(dst_path),
+            'display_name': os.path.basename(dst_path)
+        })
+    except Exception as e:
+        return jsonify({'error': f'重命名失败: {str(e)}'}), 500
+
+
 @app.route('/download/<path:filename>')
 def download_file(filename):
     """下载处理后的文件"""

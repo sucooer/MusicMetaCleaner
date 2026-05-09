@@ -6,21 +6,24 @@
     <title>音频歌词清理工具</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f1f5f9;
-            --panel: #ffffff;
-            --panel-soft: #f8fafc;
-            --line: #dbe3ef;
-            --text: #0f172a;
-            --subtext: #475569;
-            --accent: #0f766e;
-            --accent-2: #0891b2;
-            --ok: #059669;
-            --warn: #d97706;
-            --danger: #dc2626;
-            --radius: 12px;
+            --bg: #0b1022;
+            --bg-soft: #111936;
+            --panel: rgba(17, 25, 54, 0.82);
+            --panel-soft: rgba(30, 27, 75, 0.5);
+            --line: rgba(148, 163, 184, 0.22);
+            --text: #f8fafc;
+            --subtext: #9fb0d1;
+            --accent: #f97316;
+            --accent-2: #fb923c;
+            --ok: #10b981;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --radius: 14px;
+            --mode-accent: #f97316;
+            --mode-accent-2: #fb923c;
         }
 
         * {
@@ -30,12 +33,15 @@
         html,
         body {
             width: 100%;
-            height: 100%;
+            min-height: 100%;
             margin: 0;
-            overflow: hidden;
-            background: radial-gradient(circle at 10% 10%, #ecfdf5 0%, #eff6ff 50%, #fff7ed 100%);
+            overflow: auto;
+            background:
+                radial-gradient(circle at 12% 8%, rgba(249, 115, 22, 0.17) 0%, rgba(249, 115, 22, 0) 45%),
+                radial-gradient(circle at 88% 92%, rgba(59, 130, 246, 0.18) 0%, rgba(59, 130, 246, 0) 40%),
+                linear-gradient(140deg, #070b18 0%, #0b1022 45%, #101938 100%);
             color: var(--text);
-            font-family: 'Noto Sans SC', sans-serif;
+            font-family: 'Fira Sans', sans-serif;
         }
 
         [v-cloak] {
@@ -44,20 +50,21 @@
 
         #app {
             width: 100%;
-            height: 100%;
-            padding: 10px;
+            min-height: 100vh;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
         .top-bar {
             flex: 0 0 auto;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(15, 23, 42, 0.7);
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-            padding: 10px 14px;
+            box-shadow: 0 20px 40px rgba(2, 6, 23, 0.55);
+            backdrop-filter: blur(10px);
+            padding: 12px 14px;
             display: grid;
             grid-template-columns: 1fr auto;
             gap: 12px;
@@ -85,7 +92,7 @@
 
         .top-title .sub {
             margin: 0;
-            color: var(--subtext);
+            color: #c2d0ee;
             font-size: 0.88rem;
             white-space: nowrap;
             overflow: hidden;
@@ -99,13 +106,39 @@
             justify-content: flex-end;
         }
 
+        .mode-switch {
+            display: inline-flex;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        .mode-switch .btn {
+            border: 0;
+            border-radius: 0;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .mode-note {
+            grid-column: 1 / -1;
+            border: 1px dashed rgba(148, 163, 184, 0.35);
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.45);
+            padding: 8px 10px;
+            font-size: 0.78rem;
+            color: var(--subtext);
+            border-left: 4px solid var(--mode-accent);
+        }
+
         .chip {
             border: 1px solid var(--line);
             border-radius: 999px;
             padding: 4px 10px;
             font-size: 0.78rem;
             color: var(--subtext);
-            background: var(--panel-soft);
+            background: rgba(30, 41, 59, 0.65);
             white-space: nowrap;
         }
 
@@ -133,29 +166,109 @@
         .progress {
             flex: 1;
             height: 8px;
-            background: #e2e8f0;
+            background: rgba(148, 163, 184, 0.24);
             border-radius: 999px;
         }
 
         .progress-bar {
-            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            background: linear-gradient(90deg, var(--mode-accent), var(--mode-accent-2));
             transition: width 0.2s ease;
         }
 
         .dashboard {
-            flex: 1 1 auto;
-            min-height: 0;
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            grid-template-rows: repeat(2, minmax(0, 1fr));
-            gap: 10px;
+            grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .flow {
+            display: grid;
+            gap: 12px;
+            min-width: 0;
+            align-content: start;
+        }
+
+        .side {
+            display: grid;
+            gap: 12px;
+            min-width: 0;
+            align-content: start;
+        }
+
+        .dashboard.mode-path .flow,
+        .dashboard.mode-path .side {
+            height: 100%;
+        }
+
+        .dashboard.mode-path .panel {
+            height: 100%;
+        }
+
+        .dashboard.mode-path {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard.mode-path .flow,
+        .dashboard.mode-path .side {
+            width: 100%;
+            height: auto;
+        }
+
+        .dashboard.mode-path .side {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard.mode-path .panel-body {
+            overflow: visible;
+        }
+
+        .dashboard.mode-upload {
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+            grid-template-rows: auto minmax(0, 1fr);
+            align-items: stretch;
+        }
+
+        .dashboard.mode-upload .flow,
+        .dashboard.mode-upload .side {
+            display: contents;
+        }
+
+        .dashboard.mode-upload .upload-panel {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .dashboard.mode-upload .result-download-panel {
+            grid-column: 1;
+            grid-row: 1;
+            height: 100%;
+        }
+
+        .dashboard.mode-upload .list-preview-panel {
+            grid-column: 2;
+            grid-row: 1 / span 2;
+            height: 100%;
+        }
+
+        .dashboard.mode-upload .panel {
+            height: auto;
+        }
+
+        .dashboard.mode-upload .panel-body {
+            overflow: auto;
+        }
+
+        .span-2 {
+            grid-column: 1 / -1;
         }
 
         .panel {
-            background: rgba(255, 255, 255, 0.92);
+            background: var(--panel);
             border: 1px solid var(--line);
             border-radius: var(--radius);
-            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+            box-shadow: 0 18px 36px rgba(2, 6, 23, 0.5);
+            backdrop-filter: blur(8px);
             display: flex;
             flex-direction: column;
             min-height: 0;
@@ -166,7 +279,7 @@
             flex: 0 0 auto;
             padding: 8px 10px;
             border-bottom: 1px solid var(--line);
-            background: linear-gradient(120deg, #f8fafc, #eef6ff);
+            background: linear-gradient(120deg, rgba(30, 27, 75, 0.88), rgba(15, 23, 42, 0.9));
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -201,9 +314,9 @@
         }
 
         .upload-drop {
-            border: 2px dashed #94a3b8;
+            border: 2px dashed rgba(148, 163, 184, 0.45);
             border-radius: 10px;
-            background: #f8fafc;
+            background: rgba(15, 23, 42, 0.45);
             min-height: 82px;
             padding: 10px;
             display: flex;
@@ -217,8 +330,8 @@
 
         .upload-drop.active {
             border-color: var(--accent);
-            background: #ecfeff;
-            box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.2);
+            background: rgba(30, 41, 59, 0.75);
+            box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.32);
         }
 
         .upload-drop i {
@@ -235,10 +348,10 @@
         }
 
         .empty {
-            border: 1px dashed #bfdbfe;
-            background: #f8fbff;
+            border: 1px dashed rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.45);
             border-radius: 10px;
-            color: #475569;
+            color: var(--subtext);
             font-size: 0.86rem;
             text-align: center;
             padding: 16px 12px;
@@ -248,7 +361,7 @@
             display: block;
             font-size: 1.2rem;
             margin-bottom: 6px;
-            color: #0ea5e9;
+            color: #f59e0b;
         }
         .file-list,
         .simple-list {
@@ -259,9 +372,9 @@
 
         .file-item,
         .simple-item {
-            border: 1px solid #dde5f0;
+            border: 1px solid rgba(148, 163, 184, 0.22);
             border-radius: 10px;
-            background: #fff;
+            background: rgba(15, 23, 42, 0.42);
             padding: 8px;
             display: flex;
             justify-content: space-between;
@@ -280,7 +393,7 @@
 
         .file-meta {
             font-size: 0.74rem;
-            color: #64748b;
+            color: var(--subtext);
         }
 
         .mini-badge {
@@ -311,12 +424,31 @@
         }
 
         .preview-box {
-            border: 1px solid #dce6f3;
+            border: 1px solid rgba(148, 163, 184, 0.22);
             border-radius: 8px;
-            background: #f8fafc;
+            background: rgba(15, 23, 42, 0.5);
             display: flex;
             flex-direction: column;
             min-height: 0;
+        }
+
+        .upload-workspace {
+            display: grid;
+            grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+            gap: 10px;
+            min-height: 0;
+        }
+
+        .workspace-col {
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .workspace-scroll {
+            min-height: 0;
+            overflow: auto;
         }
 
         .preview-box h4 {
@@ -324,12 +456,12 @@
             font-size: 0.78rem;
             padding: 6px 8px;
             border-bottom: 1px solid #e2e8f0;
-            background: #eef6ff;
+            background: rgba(30, 41, 59, 0.62);
             font-weight: 700;
         }
 
         .lyrics {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Fira Code', monospace;
             font-size: 0.72rem;
             line-height: 1.45;
             margin: 0;
@@ -341,8 +473,8 @@
 
         .removed-box {
             margin-top: 8px;
-            border: 1px solid #fed7aa;
-            background: #fff7ed;
+            border: 1px solid rgba(251, 146, 60, 0.45);
+            background: rgba(249, 115, 22, 0.15);
             border-radius: 8px;
             padding: 8px;
         }
@@ -350,7 +482,7 @@
         .removed-box h5 {
             margin: 0 0 6px;
             font-size: 0.78rem;
-            color: #9a3412;
+            color: #fdba74;
             font-weight: 700;
         }
 
@@ -360,7 +492,7 @@
             font-size: 0.72rem;
             max-height: 88px;
             overflow: auto;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Fira Code', monospace;
         }
 
         .metric-row {
@@ -371,8 +503,8 @@
         }
 
         .metric {
-            background: #f8fafc;
-            border: 1px solid #dbe3ef;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.22);
             border-radius: 8px;
             text-align: center;
             padding: 6px;
@@ -380,7 +512,7 @@
 
         .metric .label {
             font-size: 0.7rem;
-            color: #64748b;
+            color: var(--subtext);
         }
 
         .metric .value {
@@ -401,10 +533,10 @@
         }
 
         .result-block {
-            border: 1px solid #dbe3ef;
+            border: 1px solid rgba(148, 163, 184, 0.22);
             border-radius: 8px;
             padding: 8px;
-            background: #f8fafc;
+            background: rgba(15, 23, 42, 0.42);
             margin-top: 8px;
         }
 
@@ -426,9 +558,9 @@
 
         .path-result {
             margin-top: 8px;
-            border: 1px solid #dbe3ef;
+            border: 1px solid rgba(148, 163, 184, 0.22);
             border-radius: 8px;
-            background: #f8fafc;
+            background: rgba(15, 23, 42, 0.42);
             padding: 8px;
             font-size: 0.76rem;
         }
@@ -438,7 +570,7 @@
         }
 
         .muted {
-            color: #64748b;
+            color: var(--subtext);
             font-size: 0.74rem;
         }
 
@@ -456,7 +588,7 @@
         .form-label {
             margin-bottom: 4px;
             font-size: 0.76rem;
-            color: #334155;
+            color: #c2d0ee;
             font-weight: 600;
         }
 
@@ -475,11 +607,180 @@
         }
 
         .mono {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Fira Code', monospace;
         }
 
         .min-w-0 {
             min-width: 0;
+        }
+
+        .advanced-wrap {
+            margin-top: 8px;
+            border-top: 1px dashed rgba(148, 163, 184, 0.35);
+            padding-top: 8px;
+        }
+
+        .advanced-toggle {
+            width: 100%;
+            text-align: left;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 8px;
+        }
+
+        .advanced-body {
+            margin-top: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 8px;
+            padding: 8px;
+            background: rgba(15, 23, 42, 0.42);
+        }
+
+        .path-picker-list {
+            max-height: 320px;
+            overflow: auto;
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.35);
+        }
+
+        .path-picker-item {
+            width: 100%;
+            text-align: left;
+            border: 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            background: transparent;
+            padding: 8px 10px;
+            font-size: 0.84rem;
+        }
+
+        .path-picker-item:last-child {
+            border-bottom: 0;
+        }
+
+        .path-picker-item:hover {
+            background: rgba(30, 41, 59, 0.5);
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, var(--mode-accent), var(--mode-accent-2));
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(0.95);
+        }
+
+        .btn-outline-primary {
+            border-color: color-mix(in srgb, var(--mode-accent) 65%, #ffffff 35%);
+            color: color-mix(in srgb, var(--mode-accent-2) 80%, #ffffff 20%);
+        }
+
+        .btn-outline-primary:hover {
+            background: color-mix(in srgb, var(--mode-accent) 16%, transparent);
+            color: #fff;
+        }
+
+        .dashboard.mode-upload {
+            --mode-accent: #2563eb;
+            --mode-accent-2: #38bdf8;
+        }
+
+        .dashboard.mode-path {
+            --mode-accent: #f97316;
+            --mode-accent-2: #fb923c;
+        }
+
+        .form-control,
+        .form-check-input {
+            background-color: rgba(15, 23, 42, 0.55);
+            border-color: rgba(148, 163, 184, 0.35);
+            color: var(--text);
+        }
+
+        .form-control::placeholder {
+            color: #8aa0c6;
+        }
+
+        .form-control:focus,
+        .btn:focus-visible,
+        .form-check-input:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(249, 115, 22, 0.28);
+            border-color: rgba(251, 146, 60, 0.85);
+        }
+
+        .btn,
+        .panel,
+        .file-item,
+        .simple-item,
+        .chip {
+            transition: all 0.2s ease;
+        }
+
+        .file-item:hover,
+        .simple-item:hover {
+            border-color: rgba(251, 146, 60, 0.55);
+            background: rgba(30, 41, 59, 0.72);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+
+        @media (max-width: 1199px) {
+            #app {
+                min-height: auto;
+                padding: 10px;
+            }
+
+            .top-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .top-stats {
+                justify-content: flex-start;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard.mode-upload {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+
+            .dashboard.mode-upload .flow,
+            .dashboard.mode-upload .side {
+                display: grid;
+            }
+
+            .dashboard.mode-upload .upload-panel,
+            .dashboard.mode-upload .result-download-panel,
+            .dashboard.mode-upload .list-preview-panel {
+                grid-column: auto;
+                grid-row: auto;
+                height: auto;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .upload-workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .preview-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
     </style>
 </head>
@@ -494,10 +795,24 @@
         </div>
 
         <div class="top-stats">
-            <span class="chip">总文件<strong>[[ uploadedFiles.length ]]</strong></span>
-            <span class="chip">含歌词<strong>[[ filesWithLyrics.length ]]</strong></span>
-            <span class="chip">已处理<strong>[[ processedFiles.length ]]</strong></span>
-            <span class="chip">路径模式<strong>[[ pathResult ? '已执行' : '未执行' ]]</strong></span>
+            <template v-if="uiMode === 'upload'">
+                <span class="chip">总文件<strong>[[ uploadedFiles.length ]]</strong></span>
+                <span class="chip">含歌词<strong>[[ filesWithLyrics.length ]]</strong></span>
+                <span class="chip">已处理<strong>[[ processedFiles.length ]]</strong></span>
+            </template>
+            <template v-else>
+                <span class="chip">当前模式<strong>路径处理</strong></span>
+                <span class="chip">执行状态<strong>[[ pathResult ? '已执行' : '未执行' ]]</strong></span>
+                <span class="chip">目标路径<strong>[[ pathForm.path ? '已选择' : '未选择' ]]</strong></span>
+            </template>
+            <div class="mode-switch">
+                <button class="btn btn-sm compact-btn" :class="uiMode === 'upload' ? 'btn-primary' : 'btn-outline-primary'" @click="uiMode = 'upload'">上传模式</button>
+                <button class="btn btn-sm compact-btn" :class="uiMode === 'path' ? 'btn-primary' : 'btn-outline-primary'" @click="uiMode = 'path'">路径模式</button>
+            </div>
+        </div>
+
+        <div class="mode-note">
+            [[ uiMode === 'upload' ? '上传模式：适合处理你本机选择的文件，支持预览与打包下载。' : '路径模式：直接处理服务器目录内音频，适合批量和无人值守场景。' ]]
         </div>
 
         <div class="progress-wrap" v-show="progress.visible">
@@ -508,8 +823,49 @@
         </div>
     </header>
 
-    <main class="dashboard">
-        <section class="panel">
+    <main class="dashboard" :class="'mode-' + uiMode">
+        <div class="flow" v-if="uiMode === 'path'">
+        <section class="panel upload-panel">
+            <div class="panel-head">
+                <h3><i class="bi bi-terminal"></i>路径模式</h3>
+                <span class="muted">仅服务器路径处理</span>
+            </div>
+            <div class="panel-body">
+                <div class="advanced-body">
+                    <div class="mb-2">
+                        <label class="form-label" for="serverPath">目标路径</label>
+                        <input id="serverPath" class="form-control" v-model.trim="pathForm.path" placeholder="例如 /music 或 /app/uploads">
+                    </div>
+                    <div class="inline-actions mb-2">
+                        <button class="btn btn-outline-primary compact-btn" @click="openPathPicker">
+                            <i class="bi bi-folder2-open me-1"></i>浏览服务器目录
+                        </button>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="extFilter">扩展名过滤（可选）</label>
+                        <input id="extFilter" class="form-control" v-model.trim="pathForm.filterExt" placeholder=".mp3,.flac,.m4a">
+                    </div>
+                    <div class="d-flex justify-content-between flex-wrap">
+                        <label class="form-check">
+                            <input type="checkbox" class="form-check-input" v-model="pathForm.dryRun">
+                            <span class="form-check-label">预览模式</span>
+                        </label>
+                        <label class="form-check">
+                            <input type="checkbox" class="form-check-input" v-model="pathForm.backup">
+                            <span class="form-check-label">备份原文件</span>
+                        </label>
+                    </div>
+                    <div class="inline-actions mt-1">
+                        <button class="btn btn-primary compact-btn" :disabled="pathProcessing" @click="processPath">
+                            <i class="bi bi-play-circle me-1"></i>[[ pathProcessing ? '处理中...' : '执行路径模式' ]]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        </div>
+        <div class="flow" v-else>
+        <section class="panel result-download-panel">
             <div class="panel-head">
                 <h3><i class="bi bi-cloud-upload"></i>上传</h3>
                 <button class="btn btn-outline-secondary compact-btn" @click="clearUploads">清空上传</button>
@@ -524,7 +880,6 @@
                     <div class="fw-bold" style="font-size:0.83rem;">拖拽音频文件到这里</div>
                     <div class="muted">支持 MP3 / FLAC / M4A</div>
                 </div>
-
                 <div class="upload-actions mb-2">
                     <button class="btn btn-primary compact-btn" @click="chooseFiles">
                         <i class="bi bi-file-earmark-music me-1"></i>选择文件
@@ -533,14 +888,11 @@
                         <i class="bi bi-folder2-open me-1"></i>选择文件夹
                     </button>
                 </div>
-
-                <input ref="fileInput" type="file" multiple accept=".mp3,.flac,.m4a" class="d-none" @change="onFilesSelected">
-                <input ref="folderInput" type="file" webkitdirectory directory multiple class="d-none" @change="onFolderSelected">
-
+                <input ref="fileInput" type="file" multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFilesSelected">
+                <input ref="folderInput" type="file" webkitdirectory directory multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFolderSelected">
                 <div class="muted" v-if="uploadFolderStats">
                     文件夹上传：总 [[ uploadFolderStats.total_files ]]，含歌词 [[ uploadFolderStats.files_with_lyrics ]]
                 </div>
-
                 <div class="inline-actions mt-2">
                     <button class="btn btn-success compact-btn" :disabled="filesWithLyrics.length === 0" @click="previewFirstWithLyrics">
                         <i class="bi bi-eye me-1"></i>预览首个可处理文件
@@ -553,107 +905,7 @@
         </section>
         <section class="panel">
             <div class="panel-head">
-                <h3><i class="bi bi-list-ul"></i>文件列表</h3>
-                <span class="mini-badge ok">[[ filesWithLyrics.length ]] 可处理</span>
-            </div>
-            <div class="panel-body">
-                <div v-if="uploadedFiles.length === 0" class="empty">
-                    <i class="bi bi-inbox"></i>
-                    上传后会在这里显示文件状态和预览按钮
-                </div>
-
-                <div v-else class="file-list">
-                    <div class="file-item" v-for="(file, index) in uploadedFiles" :key="file.filename">
-                        <div class="flex-grow-1 min-w-0">
-                            <div class="file-name">[[ basename(file.original_name) ]]</div>
-                            <div class="file-meta">[[ file.folder || '根目录' ]]</div>
-                        </div>
-                        <span class="mini-badge" :class="file.has_lyrics ? 'ok' : 'no'">
-                            [[ file.has_lyrics ? '有歌词' : '无歌词' ]]
-                        </span>
-                        <button class="btn btn-outline-primary compact-btn" :disabled="!file.has_lyrics" @click="previewFile(index)">
-                            预览
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel">
-            <div class="panel-head">
-                <h3><i class="bi bi-eye"></i>预览</h3>
-                <span class="muted" v-if="previewFilename">[[ basename(previewFilename) ]]</span>
-            </div>
-            <div class="panel-body">
-                <div v-if="!previewData" class="empty">
-                    <i class="bi bi-columns-gap"></i>
-                    请选择一个含歌词文件进行对比预览
-                </div>
-
-                <div v-else>
-                    <div class="preview-grid">
-                        <div class="preview-box">
-                            <h4>原始歌词</h4>
-                            <pre class="lyrics">[[ previewData.original_lyrics ]]</pre>
-                        </div>
-                        <div class="preview-box">
-                            <h4>清理后歌词</h4>
-                            <pre class="lyrics">[[ previewData.cleaned_lyrics ]]</pre>
-                        </div>
-                    </div>
-                    <div class="removed-box" v-if="previewData.removed_lines && previewData.removed_lines.length">
-                        <h5>已移除 [[ previewData.removed_count ]] 行</h5>
-                        <pre class="removed-list">[[ previewData.removed_lines.join('\n') ]]</pre>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel">
-            <div class="panel-head">
-                <h3><i class="bi bi-terminal"></i>路径模式</h3>
-                <span class="muted">服务器/容器内直接处理</span>
-            </div>
-            <div class="panel-body">
-                <div class="mb-2">
-                    <label class="form-label" for="serverPath">目标路径</label>
-                    <input id="serverPath" class="form-control" v-model.trim="pathForm.path" placeholder="例如 /music 或 /app/uploads">
-                </div>
-
-                <div class="mb-2">
-                    <label class="form-label" for="extFilter">扩展名过滤（可选）</label>
-                    <input id="extFilter" class="form-control" v-model.trim="pathForm.filterExt" placeholder=".mp3,.flac,.m4a">
-                </div>
-
-                <div class="d-flex justify-content-between flex-wrap">
-                    <label class="form-check">
-                        <input type="checkbox" class="form-check-input" v-model="pathForm.dryRun">
-                        <span class="form-check-label">预览模式</span>
-                    </label>
-                    <label class="form-check">
-                        <input type="checkbox" class="form-check-input" v-model="pathForm.backup">
-                        <span class="form-check-label">备份原文件</span>
-                    </label>
-                </div>
-
-                <div class="inline-actions mt-1">
-                    <button class="btn btn-primary compact-btn" :disabled="pathProcessing" @click="processPath">
-                        <i class="bi bi-play-circle me-1"></i>[[ pathProcessing ? '处理中...' : '执行路径模式' ]]
-                    </button>
-                </div>
-
-                <div v-if="pathResult" class="path-result">
-                    <div><strong>模式：</strong>[[ pathResult.dry_run ? '预览（不改文件）' : '正式处理' ]]</div>
-                    <div><strong>总音频：</strong>[[ pathResult.total_audio_files ]]</div>
-                    <div><strong>成功：</strong>[[ pathResult.success_count ]]，<strong>失败：</strong>[[ pathResult.failed_count ]]，<strong>忽略：</strong>[[ pathResult.ignored_count ]]</div>
-                    <div><strong>总移除行：</strong>[[ pathResult.total_removed ]]</div>
-                    <div class="mono muted mt-1">[[ pathResult.target_path ]]</div>
-                </div>
-            </div>
-        </section>
-        <section class="panel">
-            <div class="panel-head">
-                <h3><i class="bi bi-check-circle"></i>处理结果</h3>
+                <h3><i class="bi bi-check-circle"></i>处理结果与下载</h3>
                 <span class="muted" v-if="processResult">最近一次批处理统计</span>
             </div>
             <div class="panel-body">
@@ -661,7 +913,6 @@
                     <i class="bi bi-graph-up"></i>
                     点击“处理全部可处理文件”后，这里显示成功/失败/忽略统计
                 </div>
-
                 <div v-else>
                     <div class="metric-row">
                         <div class="metric">
@@ -702,45 +953,156 @@
                             </li>
                         </ul>
                     </div>
-                </div>
-            </div>
-        </section>
 
-        <section class="panel">
-            <div class="panel-head">
-                <h3><i class="bi bi-download"></i>下载</h3>
-                <span class="mini-badge ok">[[ processedFiles.length ]] 个文件</span>
-            </div>
-            <div class="panel-body">
-                <div v-if="processedFiles.length === 0" class="empty">
-                    <i class="bi bi-cloud-arrow-down"></i>
-                    处理成功的文件会出现在这里，可单独下载或打包下载
-                </div>
-
-                <div v-else>
-                    <div class="download-actions">
-                        <button class="btn btn-primary compact-btn" @click="downloadAll">
-                            <i class="bi bi-file-zip me-1"></i>下载全部 ZIP
-                        </button>
-                        <button class="btn btn-outline-secondary compact-btn" @click="cleanup">
-                            <i class="bi bi-trash me-1"></i>清理临时文件
-                        </button>
-                    </div>
-
-                    <div class="simple-list">
-                        <div class="simple-item" v-for="file in processedFiles" :key="file.processed_filename">
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="file-name">[[ basename(file.display_name || file.original_filename) ]]</div>
-                                <div class="file-meta">移除 [[ file.removed_count ]] 行信息标头</div>
+                    <div class="result-block mt-2">
+                        <h4><i class="bi bi-download"></i>下载</h4>
+                        <div v-if="processedFiles.length === 0" class="empty">
+                            <i class="bi bi-cloud-arrow-down"></i> 处理成功的文件会出现在这里
+                        </div>
+                        <div v-else>
+                            <div class="download-actions">
+                                <button class="btn btn-primary compact-btn" @click="downloadAll"><i class="bi bi-file-zip me-1"></i>下载全部 ZIP</button>
+                                <button class="btn btn-outline-secondary compact-btn" @click="cleanup"><i class="bi bi-trash me-1"></i>清理临时文件</button>
                             </div>
-                            <button class="btn btn-outline-primary compact-btn" @click="downloadSingle(file)">
-                                下载
-                            </button>
+                            <div class="simple-list">
+                                <div class="simple-item" v-for="file in processedFiles" :key="file.processed_filename">
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="file-name">[[ basename(file.display_name || file.original_filename) ]]</div>
+                                        <div class="file-meta">移除 [[ file.removed_count ]] 行信息标头</div>
+                                    </div>
+                                    <button class="btn btn-outline-secondary compact-btn" @click="renameProcessedFile(file)">重命名</button>
+                                    <button class="btn btn-outline-primary compact-btn" @click="downloadSingle(file)">下载</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
+        </div>
+
+        <div class="side">
+        <section class="panel list-preview-panel" v-if="uiMode === 'upload'">
+            <div class="panel-head">
+                <h3><i class="bi bi-layout-split"></i>文件列表与预览</h3>
+                <span class="mini-badge ok">[[ filesWithLyrics.length ]] 可处理</span>
+            </div>
+            <div class="panel-body">
+                <div class="upload-workspace">
+                    <div class="workspace-col">
+                        <div class="muted">文件列表</div>
+                        <div class="workspace-scroll">
+                            <div v-if="uploadedFiles.length === 0" class="empty">
+                                <i class="bi bi-inbox"></i> 上传后会在这里显示文件状态和预览按钮
+                            </div>
+                            <div v-else class="file-list">
+                                <div class="file-item" v-for="(file, index) in uploadedFiles" :key="file.filename">
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="file-name">[[ basename(file.original_name) ]]</div>
+                                        <div class="file-meta">[[ file.folder || '根目录' ]]</div>
+                                    </div>
+                                    <span class="mini-badge" :class="file.has_lyrics ? 'ok' : 'no'">[[ file.has_lyrics ? '有歌词' : '无歌词' ]]</span>
+                                    <button class="btn btn-outline-primary compact-btn" :disabled="!file.has_lyrics" @click="previewFile(index)">预览</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="workspace-col">
+                        <div class="muted">预览 <span v-if="previewFilename">- [[ basename(previewFilename) ]]</span></div>
+                        <div class="workspace-scroll">
+                            <div v-if="!previewData" class="empty"><i class="bi bi-columns-gap"></i> 请选择一个含歌词文件进行对比预览</div>
+                            <div v-else>
+                                <div class="preview-grid">
+                                    <div class="preview-box"><h4>原始歌词</h4><pre class="lyrics">[[ previewData.original_lyrics ]]</pre></div>
+                                    <div class="preview-box"><h4>清理后歌词</h4><pre class="lyrics">[[ previewData.cleaned_lyrics ]]</pre></div>
+                                </div>
+                                <div class="removed-box" v-if="previewData.removed_lines && previewData.removed_lines.length">
+                                    <h5>已移除 [[ previewData.removed_count ]] 行</h5>
+                                    <pre class="removed-list">[[ previewData.removed_lines.join('\n') ]]</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" v-if="uiMode === 'path'">
+            <div class="panel-head">
+                <h3><i class="bi bi-list-check"></i>路径结果</h3>
+                <span class="muted">执行后在这里查看结果</span>
+            </div>
+            <div class="panel-body">
+                <div v-if="pathResult" class="path-result">
+                    <div><strong>模式：</strong>[[ pathResult.dry_run ? '预览（不改文件）' : '正式处理' ]]</div>
+                    <div><strong>总音频：</strong>[[ pathResult.total_audio_files ]]</div>
+                    <div><strong>成功：</strong>[[ pathResult.success_count ]]，<strong>失败：</strong>[[ pathResult.failed_count ]]，<strong>忽略：</strong>[[ pathResult.ignored_count ]]</div>
+                    <div><strong>总移除行：</strong>[[ pathResult.total_removed ]]</div>
+                    <div class="mono muted mt-1">[[ pathResult.target_path ]]</div>
+                </div>
+                <div v-else class="empty">
+                    <i class="bi bi-terminal"></i>
+                    执行路径模式后显示统计结果
+                </div>
+                <div
+                    v-if="pathResult && pathResult.dry_run && pathResult.processed_files && pathResult.processed_files.length"
+                    class="result-block">
+                    <h4><i class="bi bi-list-check text-info"></i>预览移除明细</h4>
+                    <div class="inline-actions mb-2">
+                        <button class="btn btn-outline-secondary compact-btn" @click="pathPreviewExpanded = !pathPreviewExpanded">
+                            [[ pathPreviewExpanded ? '收起明细' : '展开明细' ]]
+                        </button>
+                    </div>
+                    <ul>
+                        <li v-for="item in (pathPreviewExpanded ? pathResult.processed_files : pathResult.processed_files.slice(0, 5))" :key="item.path">
+                            <div><strong>[[ item.display_name ]]</strong>（移除 [[ item.removed_count ]] 行）</div>
+                            <pre class="removed-list mt-1" v-if="item.removed_lines && item.removed_lines.length">[[ item.removed_lines.join('\n') ]]</pre>
+                            <div class="muted" v-else>未返回具体移除行</div>
+                        </li>
+                    </ul>
+                    <div class="muted" v-if="!pathPreviewExpanded && pathResult.processed_files.length > 5">仅显示前 5 条</div>
+                </div>
+                <div
+                    v-if="pathResult && pathResult.processed_files && pathResult.processed_files.length"
+                    class="result-block">
+                    <h4><i class="bi bi-pencil-square text-warning"></i>已处理文件（可重命名）</h4>
+                    <div class="muted mb-2" v-if="pathResult.dry_run">当前为预览模式，重命名不可用。请关闭“预览模式”后执行。</div>
+                    <div class="mb-2">
+                        <label class="form-label">模板批量重命名</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <input
+                                class="form-control"
+                                style="max-width: 320px;"
+                                v-model.trim="renameTemplate"
+                                placeholder="{track}.{title}">
+                            <button
+                                class="btn btn-primary compact-btn"
+                                :disabled="pathResult.dry_run || !renameTemplate || renamingBatch"
+                                @click="renamePathFilesByTemplate">
+                                [[ renamingBatch ? '重命名中...' : '按模板批量重命名' ]]
+                            </button>
+                        </div>
+                        <div class="muted mt-1">可用变量：`{track}` `{title}` `{artist}` `{index}` `{ext}`，示例：`{track}.{title}{ext}`</div>
+                    </div>
+                    <div class="simple-list">
+                        <div class="simple-item" v-for="(item, idx) in (pathRenameExpanded ? pathResult.processed_files : pathResult.processed_files.slice(0, 8))" :key="item.path">
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="file-name">[[ item.display_name ]]</div>
+                                <div class="file-meta mono">[[ item.path ]]</div>
+                            </div>
+                            <button class="btn btn-outline-primary compact-btn" :disabled="pathResult.dry_run" @click="renamePathFile(item, idx)">重命名</button>
+                        </div>
+                    </div>
+                    <div class="inline-actions mt-2" v-if="pathResult.processed_files.length > 8">
+                        <button class="btn btn-outline-secondary compact-btn" @click="pathRenameExpanded = !pathRenameExpanded">
+                            [[ pathRenameExpanded ? '收起列表' : '展开全部列表' ]]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        </div>
     </main>
 
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
@@ -750,6 +1112,46 @@
                 <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
             </div>
             <div class="toast-body">[[ toastMessage ]]</div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="pathPickerModal" tabindex="-1" aria-hidden="true" ref="pathPickerModalEl">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">选择服务器目录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <div class="muted">当前路径</div>
+                        <div class="mono">[[ pathPicker.currentPath || '-' ]]</div>
+                    </div>
+                    <div class="inline-actions mb-2">
+                        <button class="btn btn-outline-secondary compact-btn" :disabled="!pathPicker.parentPath || pathPicker.loading" @click="browsePath(pathPicker.parentPath)">
+                            <i class="bi bi-arrow-up-circle me-1"></i>上级目录
+                        </button>
+                        <button class="btn btn-outline-secondary compact-btn" :disabled="pathPicker.loading" @click="browsePath(pathPicker.currentPath)">
+                            <i class="bi bi-arrow-clockwise me-1"></i>刷新
+                        </button>
+                        <button class="btn btn-primary compact-btn" :disabled="!pathPicker.currentPath" @click="selectCurrentPath">
+                            <i class="bi bi-check2-circle me-1"></i>选择当前目录
+                        </button>
+                    </div>
+                    <div v-if="pathPicker.error" class="alert alert-warning py-2 mb-2">[[ pathPicker.error ]]</div>
+                    <div class="path-picker-list" v-if="pathPicker.directories.length">
+                        <button
+                            class="path-picker-item"
+                            type="button"
+                            v-for="dir in pathPicker.directories"
+                            :key="dir.path"
+                            @click="browsePath(dir.path)">
+                            <i class="bi bi-folder me-2"></i>[[ dir.name ]]
+                        </button>
+                    </div>
+                    <div v-else class="empty py-3">当前目录没有可访问的子目录</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -762,6 +1164,7 @@ const { createApp } = Vue;
 const vueApp = createApp({
     data() {
         return {
+            uiMode: 'path',
             dragOver: false,
             uploadedFiles: [],
             uploadFolderStats: null,
@@ -784,7 +1187,19 @@ const vueApp = createApp({
                 text: '处理中...'
             },
             toastInstance: null,
-            toastMessage: ''
+            toastMessage: '',
+            pathPickerModal: null,
+            renameTemplate: '{track}.{title}{ext}',
+            renamingBatch: false,
+            pathPreviewExpanded: false,
+            pathRenameExpanded: false,
+            pathPicker: {
+                loading: false,
+                currentPath: '',
+                parentPath: '',
+                directories: [],
+                error: ''
+            }
         };
     },
     computed: {
@@ -794,6 +1209,7 @@ const vueApp = createApp({
     },
     mounted() {
         this.toastInstance = new bootstrap.Toast(this.$refs.toastEl, { delay: 2600 });
+        this.pathPickerModal = new bootstrap.Modal(this.$refs.pathPickerModalEl);
     },
     methods: {
         basename(path) {
@@ -1029,6 +1445,8 @@ const vueApp = createApp({
                 }
 
                 this.pathResult = data;
+                this.pathPreviewExpanded = false;
+                this.pathRenameExpanded = false;
                 this.updateProgress(100, '路径模式完成');
                 this.hideProgress(600);
                 this.showToast('路径模式执行完成', 'success');
@@ -1038,6 +1456,147 @@ const vueApp = createApp({
             } finally {
                 this.pathProcessing = false;
             }
+        },
+        async browsePath(targetPath = '') {
+            this.pathPicker.loading = true;
+            this.pathPicker.error = '';
+            try {
+                const response = await fetch('/browse_path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: targetPath || this.pathForm.path || '' })
+                });
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+                this.pathPicker.currentPath = data.current_path || '';
+                this.pathPicker.parentPath = data.parent_path || '';
+                this.pathPicker.directories = data.directories || [];
+            } catch (error) {
+                this.pathPicker.error = error.message;
+            } finally {
+                this.pathPicker.loading = false;
+            }
+        },
+        async openPathPicker() {
+            await this.browsePath(this.pathForm.path);
+            this.pathPickerModal.show();
+        },
+        selectCurrentPath() {
+            if (!this.pathPicker.currentPath) return;
+            this.pathForm.path = this.pathPicker.currentPath;
+            this.pathPickerModal.hide();
+            this.showToast('已选择路径', 'success');
+        },
+        async renameProcessedFile(file) {
+            const currentName = this.basename(file.display_name || file.original_filename || '');
+            const newName = window.prompt('请输入新文件名（可不带扩展名）', currentName);
+            if (!newName || !newName.trim()) return;
+
+            try {
+                const response = await fetch('/rename_processed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        processed_filename: file.processed_filename,
+                        new_name: newName.trim()
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+
+                file.processed_filename = data.processed_filename;
+                file.display_name = data.display_name || file.display_name;
+                this.showToast('重命名成功', 'success');
+            } catch (error) {
+                this.showToast(`重命名失败: ${error.message}`, 'error');
+            }
+        },
+        async renamePathFile(item) {
+            const currentName = this.basename(item.display_name || item.path || '');
+            const newName = window.prompt('请输入新文件名（可不带扩展名）', currentName);
+            if (!newName || !newName.trim()) return;
+
+            try {
+                const response = await fetch('/rename_path_file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        path: item.path,
+                        new_name: newName.trim()
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+
+                item.path = data.path || item.path;
+                item.display_name = data.display_name || this.basename(item.path);
+                this.showToast('重命名成功', 'success');
+            } catch (error) {
+                this.showToast(`重命名失败: ${error.message}`, 'error');
+            }
+        },
+        buildTemplateName(item, template, index) {
+            const sourceName = this.basename(item.display_name || item.path || '');
+            const extMatch = sourceName.match(/(\.[^.]+)$/);
+            const ext = extMatch ? extMatch[1] : '';
+            const stem = ext ? sourceName.slice(0, -ext.length) : sourceName;
+
+            const parts = stem.split(/\s*-\s*/).map(s => s.trim()).filter(Boolean);
+            const trackMatch = stem.match(/^\s*(\d{1,3})\b/);
+            const track = trackMatch ? trackMatch[1].padStart(2, '0') : String(index + 1).padStart(2, '0');
+            const title = parts.length >= 2 ? parts[1] : stem;
+            const artist = parts.length >= 3 ? parts[2] : '';
+
+            let result = (template || '{track}.{title}')
+                .replaceAll('{track}', track)
+                .replaceAll('{title}', title)
+                .replaceAll('{artist}', artist)
+                .replaceAll('{index}', String(index + 1))
+                .replaceAll('{ext}', ext);
+
+            result = result.replace(/[\\/:*?"<>|\x00-\x1f]+/g, '_').trim();
+            return result || stem;
+        },
+        async renamePathFilesByTemplate() {
+            if (!this.pathResult || this.pathResult.dry_run || !this.pathResult.processed_files?.length) return;
+            if (!this.renameTemplate) {
+                this.showToast('请先输入模板', 'warning');
+                return;
+            }
+
+            this.renamingBatch = true;
+            let ok = 0;
+            let fail = 0;
+
+            for (let i = 0; i < this.pathResult.processed_files.length; i += 1) {
+                const item = this.pathResult.processed_files[i];
+                const newName = this.buildTemplateName(item, this.renameTemplate, i);
+                try {
+                    const response = await fetch('/rename_path_file', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: item.path, new_name: newName })
+                    });
+                    const data = await response.json();
+                    if (!response.ok || data.error) {
+                        throw new Error(data.error || `HTTP ${response.status}`);
+                    }
+                    item.path = data.path || item.path;
+                    item.display_name = data.display_name || this.basename(item.path);
+                    ok += 1;
+                } catch (error) {
+                    fail += 1;
+                }
+            }
+
+            this.renamingBatch = false;
+            this.showToast(`批量重命名完成：成功 ${ok}，失败 ${fail}`, fail ? 'warning' : 'success');
         },
         downloadBlob(blob, filename) {
             const url = window.URL.createObjectURL(blob);
@@ -1160,4 +1719,3 @@ vueApp.mount('#app');
 </script>
 </body>
 </html>
-

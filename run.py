@@ -49,17 +49,18 @@ def main():
     
     print()
     print("🚀 启动Web服务器...")
-    print("📱 请在浏览器中访问: http://localhost:5000")
+    print("📱 本机访问: http://localhost:5000")
+    print("🌐 局域网/服务器访问: http://<服务器IP>:5000")
     print("🛑 按 Ctrl+C 停止服务器")
     print()
     
     # 启动Flask应用
     try:
         from app import app
-        # Windows兼容性设置
+        # 监听所有网卡，允许通过服务器IP访问
         app.run(
             debug=False, 
-            host='127.0.0.1', 
+            host='0.0.0.0', 
             port=5000, 
             threaded=True,
             use_reloader=False,

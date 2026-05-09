@@ -30,39 +30,6 @@ docker compose down
 ```
 访问地址：http://localhost:5000
 
-### 🧱 ARM64 / 多架构构建
-```bash
-# 仅构建 ARM64 本地镜像（不推送）
-docker buildx build --platform linux/arm64 -t musicmetacleaner:arm64 --load .
-
-# 构建并推送多架构镜像（amd64 + arm64）
-docker buildx bake --push
-```
-> 多架构构建配置见 `docker-bake.hcl`。
-### 🚀 推送到 Docker Hub（手动）
-```bash
-# 登录 Docker Hub
-docker login
-
-# 构建并推送多架构镜像（amd64 + arm64）
-docker buildx build \
-  --platform linux/amd64,linux/arm64 \
-  -t <你的DockerHub用户名>/musicmetacleaner:latest \
-  --push .
-```
-
-### 🤖 GitHub Actions 自动打包并推送 Docker Hub
-仓库已内置工作流文件：`.github/workflows/docker-publish.yml`
-
-首次使用请在 GitHub 仓库中配置 Secrets（Settings → Secrets and variables → Actions）：
-- `DOCKERHUB_USERNAME`：你的 Docker Hub 用户名
-- `DOCKERHUB_TOKEN`：Docker Hub Access Token（不要用密码）
-
-触发规则：
-- push 到 `main` / `master`
-- push tag（如 `v1.0.0`）
-- 手动触发（Actions 页面）
-
 ### ⚡ 命令行使用（推荐复杂目录）
 ```bash
 # 🎯 交互式模式（新手友好）
