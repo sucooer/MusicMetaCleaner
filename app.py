@@ -356,6 +356,11 @@ def process_files():
             
             cleaned_lyrics, removed_lines = clean_lyrics(original_lyrics, use_ai=use_ai, ai_config=ai_config)
             
+            # 无可移除行时，按忽略处理（无需清理）
+            if len(removed_lines) == 0:
+                ignored_files.append({'filename': filename, 'reason': '歌词无需清理'})
+                continue
+
             # 保持文件夹结构
             relative_path = os.path.relpath(file_path, app.config['UPLOAD_FOLDER'])
             processed_filename = f"cleaned_{relative_path}"
@@ -519,7 +524,7 @@ def process_path():
             state, removed_lines = process_audio_file(abs_target_path, verbose=False, dry_run=dry_run, backup=backup, use_ai=use_ai, ai_config=ai_config)
             display_name = os.path.basename(abs_target_path)
 
-            if state is True:
+            if state is True and removed_lines > 0:
                 removed_line_items = get_removed_line_details(abs_target_path)
                 result['success_count'] = 1
                 result['total_removed'] = removed_lines
@@ -534,6 +539,12 @@ def process_path():
                 result['ignored_files'].append({
                     'filename': abs_target_path,
                     'reason': '文件中没有歌词标签'
+                })
+            elif state is True and removed_lines == 0:
+                result['ignored_count'] = 1
+                result['ignored_files'].append({
+                    'filename': abs_target_path,
+                    'reason': '歌词无需清理'
                 })
             else:
                 result['failed_count'] = 1
@@ -555,7 +566,7 @@ def process_path():
                 state, removed_lines = process_audio_file(file_path, verbose=False, dry_run=dry_run, backup=backup, use_ai=use_ai, ai_config=ai_config)
                 rel_path = os.path.relpath(file_path, abs_target_path)
 
-                if state is True:
+                if state is True and removed_lines > 0:
                     removed_line_items = get_removed_line_details(file_path)
                     result['success_count'] += 1
                     result['total_removed'] += removed_lines
@@ -570,6 +581,12 @@ def process_path():
                     result['ignored_files'].append({
                         'filename': rel_path,
                         'reason': '文件中没有歌词标签'
+                    })
+                elif state is True and removed_lines == 0:
+                    result['ignored_count'] += 1
+                    result['ignored_files'].append({
+                        'filename': rel_path,
+                        'reason': '歌词无需清理'
                     })
                 else:
                     result['failed_count'] += 1
