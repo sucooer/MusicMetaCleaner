@@ -26,6 +26,17 @@ temp_files = []
 filename_mapping = {}
 
 
+def _to_bool(value, default=True):
+    """将前端传入值转换为布尔"""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    return str(value).strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
 def _normalize_new_filename(new_name, original_ext=''):
     """标准化重命名输入，防止路径注入并保留扩展名"""
     name = str(new_name or '').strip().strip('"').strip("'")
@@ -64,6 +75,30 @@ def request_entity_too_large(error):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+def _extract_ai_config(data):
+    cfg = data.get('ai_config') if isinstance(data, dict) else None
+    if not isinstance(cfg, dict):
+        return None
+    base_url = str(cfg.get('base_url', '')).strip().rstrip('/')
+    model = str(cfg.get('model', '')).strip()
+    api_key = str(cfg.get('api_key', '')).strip()
+    timeout_raw = cfg.get('timeout', 6)
+    try:
+        timeout = float(timeout_raw)
+    except (TypeError, ValueError):
+        timeout = 6
+    if timeout <= 0:
+        timeout = 6
+    if not (base_url and model and api_key):
+        return None
+    return {
+        'base_url': base_url,
+        'model': model,
+        'api_key': api_key,
+        'timeout': timeout
+    }
 
 
 def _normalize_filter_ext(filter_ext_raw):
@@ -268,6 +303,8 @@ def preview_cleaning():
     """预览歌词清理效果"""
     data = request.get_json()
     filename = data.get('filename')
+    use_ai = _to_bool(data.get('ai_enabled'), default=True)
+    ai_config = _extract_ai_config(data)
     
     if not filename:
         return jsonify({'error': '文件名不能为空'}), 400
@@ -280,7 +317,7 @@ def preview_cleaning():
     if not original_lyrics:
         return jsonify({'error': '文件中没有歌词'}), 400
     
-    cleaned_lyrics, removed_lines = clean_lyrics(original_lyrics)
+    cleaned_lyrics, removed_lines = clean_lyrics(original_lyrics, use_ai=use_ai, ai_config=ai_config)
     
     return jsonify({
         'original_lyrics': original_lyrics,
@@ -294,6 +331,8 @@ def process_files():
     """处理文件，清理歌词"""
     data = request.get_json()
     filenames = data.get('filenames', [])
+    use_ai = _to_bool(data.get('ai_enabled'), default=True)
+    ai_config = _extract_ai_config(data)
     
     if not filenames:
         return jsonify({'error': '没有选择要处理的文件'}), 400
@@ -315,7 +354,7 @@ def process_files():
                 ignored_files.append({'filename': filename, 'reason': '文件中没有歌词标签'})
                 continue
             
-            cleaned_lyrics, removed_lines = clean_lyrics(original_lyrics)
+            cleaned_lyrics, removed_lines = clean_lyrics(original_lyrics, use_ai=use_ai, ai_config=ai_config)
             
             # 保持文件夹结构
             relative_path = os.path.relpath(file_path, app.config['UPLOAD_FOLDER'])
@@ -413,6 +452,8 @@ def process_path():
         target_path = str(data.get('path', '')).strip().strip('"')
         dry_run = bool(data.get('dry_run', False))
         backup = bool(data.get('backup', False))
+        use_ai = _to_bool(data.get('ai_enabled'), default=True)
+        ai_config = _extract_ai_config(data)
         filter_ext = _normalize_filter_ext(data.get('filter_ext'))
 
         if not target_path:
@@ -452,7 +493,7 @@ def process_path():
             original_lyrics = get_lyrics_from_file(file_path)
             if not original_lyrics:
                 return []
-            _, removed_line_items = clean_lyrics(original_lyrics)
+            _, removed_line_items = clean_lyrics(original_lyrics, use_ai=use_ai, ai_config=ai_config)
             return removed_line_items
 
         result = {
@@ -475,7 +516,7 @@ def process_path():
                 return jsonify({'error': '该文件不是可处理的音频格式，或不在扩展名过滤范围内'}), 400
 
             result['total_audio_files'] = 1
-            state, removed_lines = process_audio_file(abs_target_path, verbose=False, dry_run=dry_run, backup=backup)
+            state, removed_lines = process_audio_file(abs_target_path, verbose=False, dry_run=dry_run, backup=backup, use_ai=use_ai, ai_config=ai_config)
             display_name = os.path.basename(abs_target_path)
 
             if state is True:
@@ -511,7 +552,7 @@ def process_path():
                     continue
 
                 result['total_audio_files'] += 1
-                state, removed_lines = process_audio_file(file_path, verbose=False, dry_run=dry_run, backup=backup)
+                state, removed_lines = process_audio_file(file_path, verbose=False, dry_run=dry_run, backup=backup, use_ai=use_ai, ai_config=ai_config)
                 rel_path = os.path.relpath(file_path, abs_target_path)
 
                 if state is True:

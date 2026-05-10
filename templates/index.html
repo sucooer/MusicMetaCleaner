@@ -867,6 +867,17 @@
                             <span class="form-check-label">备份原文件</span>
                         </label>
                     </div>
+                    <div class="mt-2">
+                        <label class="form-check">
+                            <input type="checkbox" class="form-check-input" v-model="aiEnabled">
+                            <span class="form-check-label">启用 AI 识别元信息行</span>
+                        </label>
+                        <div class="muted mt-1">仅使用你自定义的 AI 提供商配置；未填写时自动退回本地规则。</div>
+                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.baseUrl" placeholder="AI Base URL，例如 https://api.openai.com/v1">
+                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.model" placeholder="AI Model，例如 gpt-4o-mini">
+                        <input type="password" class="form-control form-control-sm mt-1" v-model.trim="aiConfig.apiKey" placeholder="AI API Key">
+                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.timeout" placeholder="超时秒数（默认 6）">
+                    </div>
                     <div class="inline-actions mt-1">
                         <button class="btn btn-primary compact-btn" :disabled="pathProcessing" @click="processPath">
                             <i class="bi bi-play-circle me-1"></i>[[ pathProcessing ? '处理中...' : '执行路径模式' ]]
@@ -905,6 +916,17 @@
                     <button class="btn btn-warning compact-btn text-white" :disabled="filesWithLyrics.length === 0 || processingFiles" @click="processFiles">
                         <i class="bi bi-gear me-1"></i>处理全部可处理文件
                     </button>
+                </div>
+                <div class="mb-2">
+                    <label class="form-check">
+                        <input type="checkbox" class="form-check-input" v-model="aiEnabled">
+                        <span class="form-check-label">启用 AI 识别元信息行</span>
+                    </label>
+                    <div class="muted mt-1">仅使用你自定义的 AI 提供商配置；未填写时自动退回本地规则。</div>
+                    <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.baseUrl" placeholder="AI Base URL，例如 https://api.openai.com/v1">
+                    <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.model" placeholder="AI Model，例如 gpt-4o-mini">
+                    <input type="password" class="form-control form-control-sm mt-1" v-model.trim="aiConfig.apiKey" placeholder="AI API Key">
+                    <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.timeout" placeholder="超时秒数（默认 6）">
                 </div>
                 <input ref="fileInput" type="file" multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFilesSelected">
                 <input ref="folderInput" type="file" webkitdirectory directory multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFolderSelected">
@@ -1183,6 +1205,13 @@ const vueApp = createApp({
             processResult: null,
             processedFiles: [],
             processingFiles: false,
+            aiEnabled: true,
+            aiConfig: {
+                baseUrl: '',
+                model: '',
+                apiKey: '',
+                timeout: '6'
+            },
             pathProcessing: false,
             pathResult: null,
             pathForm: {
@@ -1220,8 +1249,34 @@ const vueApp = createApp({
     mounted() {
         this.toastInstance = new bootstrap.Toast(this.$refs.toastEl, { delay: 2600 });
         this.pathPickerModal = new bootstrap.Modal(this.$refs.pathPickerModalEl);
+        this.loadAiConfigFromStorage();
     },
     methods: {
+        loadAiConfigFromStorage() {
+            try {
+                const raw = window.localStorage.getItem('music_meta_cleaner_ai_config');
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return;
+                this.aiEnabled = parsed.aiEnabled !== false;
+                this.aiConfig.baseUrl = String(parsed.baseUrl || '');
+                this.aiConfig.model = String(parsed.model || '');
+                this.aiConfig.apiKey = String(parsed.apiKey || '');
+                this.aiConfig.timeout = String(parsed.timeout || '6');
+            } catch (_) {}
+        },
+        saveAiConfigToStorage() {
+            try {
+                const payload = {
+                    aiEnabled: this.aiEnabled,
+                    baseUrl: this.aiConfig.baseUrl,
+                    model: this.aiConfig.model,
+                    apiKey: this.aiConfig.apiKey,
+                    timeout: this.aiConfig.timeout
+                };
+                window.localStorage.setItem('music_meta_cleaner_ai_config', JSON.stringify(payload));
+            } catch (_) {}
+        },
         basename(path) {
             if (!path) return '';
             return String(path).split(/[/\\]/).pop();
@@ -1357,7 +1412,7 @@ const vueApp = createApp({
                 const response = await fetch('/preview', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filename: file.filename })
+                    body: JSON.stringify({ filename: file.filename, ai_enabled: this.aiEnabled, ai_config: this.aiConfig })
                 });
 
                 const data = await response.json();
@@ -1367,6 +1422,7 @@ const vueApp = createApp({
 
                 this.previewFilename = file.original_name;
                 this.previewData = data;
+                this.saveAiConfigToStorage();
                 this.showToast(`已预览: ${this.basename(file.original_name)}`, 'success');
             } catch (error) {
                 this.showToast(`预览失败: ${error.message}`, 'error');
@@ -1394,7 +1450,7 @@ const vueApp = createApp({
                 const response = await fetch('/process', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filenames })
+                    body: JSON.stringify({ filenames, ai_enabled: this.aiEnabled, ai_config: this.aiConfig })
                 });
 
                 this.updateProgress(80, '正在汇总处理结果...');
@@ -1406,6 +1462,7 @@ const vueApp = createApp({
 
                 this.processResult = data;
                 this.processedFiles = data.processed_files || [];
+                this.saveAiConfigToStorage();
 
                 this.updateProgress(100, '处理完成');
                 this.hideProgress(600);
@@ -1440,6 +1497,8 @@ const vueApp = createApp({
                     path: this.pathForm.path,
                     dry_run: this.pathForm.dryRun,
                     backup: this.pathForm.backup,
+                    ai_enabled: this.aiEnabled,
+                    ai_config: this.aiConfig,
                     filter_ext: this.parseFilterExtInput(this.pathForm.filterExt)
                 };
 
@@ -1457,6 +1516,7 @@ const vueApp = createApp({
                 this.pathResult = data;
                 this.pathPreviewExpanded = false;
                 this.pathRenameExpanded = false;
+                this.saveAiConfigToStorage();
                 this.updateProgress(100, '路径模式完成');
                 this.hideProgress(600);
                 this.showToast('路径模式执行完成', 'success');

@@ -6,6 +6,8 @@
 
 import os
 import re
+import json
+from urllib import request, error
 from mutagen.flac import FLAC
 from mutagen.id3 import ID3, USLT
 from mutagen.mp3 import MP3
@@ -55,8 +57,79 @@ class LyricsProcessor:
         self.header_keywords_lower = [kw.lower() for kw in self.header_keywords]        
         # 支持的音频格式
         self.supported_formats = {'.mp3', '.flac', '.m4a'}
+        self.ai_cache = {}
+
+    def _is_empty_timestamp_line(self, line_for_match):
+        """判断是否为仅时间戳、无歌词文本的空行"""
+        timestamp_prefix_pattern = r'^(?:\s*\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\])+\s*'
+        has_timestamp = re.search(r'\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\]', line_for_match) is not None
+        if not has_timestamp:
+            return False
+        content_after_timestamp = re.sub(timestamp_prefix_pattern, '', line_for_match).strip()
+        return content_after_timestamp == ""
+
+    def _is_metadata_line_by_ai(self, text, ai_config=None):
+        """
+        使用 AI 判断行文本是否为元信息行（作词/作曲/制作等），而非歌词。
+        仅在传入完整 ai_config 时调用。
+        """
+        normalized = text.strip()
+        if normalized == "":
+            return True
+
+        if not ai_config:
+            return False
+
+        base_url = str(ai_config.get('base_url', '')).strip().rstrip('/')
+        model = str(ai_config.get('model', '')).strip()
+        api_key = str(ai_config.get('api_key', '')).strip()
+        timeout = float(ai_config.get('timeout', 6))
+
+        if not (base_url and model and api_key):
+            return False
+
+        cache_key = f"{base_url}|{model}|{normalized}"
+        if cache_key in self.ai_cache:
+            return self.ai_cache[cache_key]
+
+        prompt = (
+            "你是歌词行分类器。给定单行文本，判断它是否是歌曲元信息行（例如作词/作曲/编曲/制作/版权/演唱者信息），"
+            "而不是正式歌词内容。仅返回 JSON：{\"is_metadata\": true} 或 {\"is_metadata\": false}。"
+        )
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": normalized}
+            ],
+            "temperature": 0
+        }
+        req = request.Request(
+            url=f"{base_url}/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            },
+            method="POST"
+        )
+        try:
+            with request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            content = data["choices"][0]["message"]["content"].strip()
+            result = False
+            try:
+                parsed = json.loads(content)
+                result = bool(parsed.get("is_metadata", False))
+            except Exception:
+                lower_content = content.lower()
+                result = '"is_metadata": true' in lower_content or 'is_metadata=true' in lower_content
+            self.ai_cache[cache_key] = result
+            return result
+        except (error.URLError, error.HTTPError, TimeoutError, KeyError, ValueError):
+            return False
     
-    def clean_lyrics(self, lyrics_text, verbose=False):
+    def clean_lyrics(self, lyrics_text, verbose=False, use_ai=None, ai_config=None):
         """
         删除歌词中的信息标头，但保留带方括号的时间戳格式
         
@@ -79,7 +152,7 @@ class LyricsProcessor:
             line_for_match = line.lstrip('\ufeff')  # 兼容部分歌词开头 BOM
 
             # 移除 LRC 头部标签，如 [ti:] [ar:] [al:] [by:] [offset:]
-            if re.search(r'^\s*\[(ti|ar|al|by|offset|re|ve|kana|language|length|id):.*\]\s*$', line_for_match, re.IGNORECASE):
+            if re.search(r'^\s*\[(ti|ar|al|by|offset|re|ve|kana|language|length|id)\s*[:：].*\]\s*$', line_for_match, re.IGNORECASE):
                 removed_lines.append(line)
                 if verbose:
                     print(f"移除行: {line}")
@@ -90,34 +163,40 @@ class LyricsProcessor:
                 line_for_match
             )
 
-            # 移除 00:00.xx 的标题元信息行，例如 [00:00.10]不如这样 - 陈奕迅
+            # 移除 00:00.xx 开头行（常见为标题/歌手/专辑信息）
             if timestamp_match:
                 minute = int(timestamp_match.group(1))
                 second = int(timestamp_match.group(2))
-                content = timestamp_match.group(4).strip()
 
                 if minute == 0 and second == 0:
-                    is_title_artist = re.search(r'.+\s*[-—–－]\s*.+', content) is not None
-                    if content == "" or is_title_artist:
-                        removed_lines.append(line)
-                        if verbose:
-                            print(f"移除行: {line}")
-                        continue
+                    removed_lines.append(line)
+                    if verbose:
+                        print(f"移除行: {line}")
+                    continue
 
             timestamp_prefix_pattern = r'^(?:\s*\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\])+\s*'
             # 检查是否包含时间戳 [xx:xx.xx] / [xx:xx]
             has_timestamp = re.search(r'\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\]', line_for_match) is not None
             # 提取一个或多个前置时间戳后的内容
             content_after_timestamp = re.sub(timestamp_prefix_pattern, '', line_for_match).strip()
+            if self._is_empty_timestamp_line(line_for_match):
+                removed_lines.append(line)
+                if verbose:
+                    print(f"移除空时间戳行: {line}")
+                continue
             # 检查是否以杂项关键词开头（英文大小写不敏感）
             content_after_timestamp_lower = content_after_timestamp.lower()
             has_header_keyword = any(
                 content_after_timestamp_lower.startswith(keyword)
                 for keyword in self.header_keywords_lower
             )
+            ai_enabled_for_this_call = True if use_ai is None else bool(use_ai)
+            ai_judged_metadata = False
+            if has_timestamp and ai_enabled_for_this_call:
+                ai_judged_metadata = self._is_metadata_line_by_ai(content_after_timestamp, ai_config=ai_config)
             
-            # 如果有时间戳且有杂项关键词，则跳过
-            if has_timestamp and has_header_keyword:
+            # 如果有时间戳且匹配到关键词或 AI 识别为元信息，则跳过
+            if has_timestamp and (has_header_keyword or ai_judged_metadata):
                 removed_lines.append(line)
                 if verbose:
                     print(f"移除行: {line}")
@@ -199,7 +278,7 @@ class LyricsProcessor:
             print(f"保存歌词时出错 {file_path}: {e}")
             return False
     
-    def process_audio_file(self, file_path, verbose=False, dry_run=False, backup=False):
+    def process_audio_file(self, file_path, verbose=False, dry_run=False, backup=False, use_ai=None, ai_config=None):
         """
         处理单个音频文件以清理歌词
         
@@ -229,7 +308,7 @@ class LyricsProcessor:
                 print(f"📄 处理文件: {os.path.basename(file_path)}")
                 print(f"   原歌词长度: {len(original_lyrics)} 字符")
             
-            clean_lyrics_text, removed_lines = self.clean_lyrics(original_lyrics, verbose)
+            clean_lyrics_text, removed_lines = self.clean_lyrics(original_lyrics, verbose, use_ai=use_ai, ai_config=ai_config)
             
             if len(removed_lines) == 0:
                 if verbose:
@@ -304,4 +383,3 @@ get_lyrics_from_file = lyrics_processor.get_lyrics_from_file
 save_lyrics_to_file = lyrics_processor.save_lyrics_to_file
 is_audio_file = lyrics_processor.is_audio_file
 process_audio_file = lyrics_processor.process_audio_file
-
