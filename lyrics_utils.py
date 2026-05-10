@@ -61,8 +61,8 @@ class LyricsProcessor:
 
     def _is_empty_timestamp_line(self, line_for_match):
         """判断是否为仅时间戳、无歌词文本的空行"""
-        timestamp_prefix_pattern = r'^(?:\s*\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\])+\s*'
-        has_timestamp = re.search(r'\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\]', line_for_match) is not None
+        timestamp_prefix_pattern = r'^(?:\s*\[-?\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\])+\s*'
+        has_timestamp = re.search(r'\[-?\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\]', line_for_match) is not None
         if not has_timestamp:
             return False
         content_after_timestamp = re.sub(timestamp_prefix_pattern, '', line_for_match).strip()
@@ -159,7 +159,7 @@ class LyricsProcessor:
                 continue
 
             timestamp_match = re.match(
-                r'^\s*\[(\d{1,2}):(\d{1,2})(?:[.:](\d{1,3}))?\]\s*(.*)$',
+                r'^\s*\[(-?\d{1,2}):(\d{1,2})(?:[.:](\d{1,3}))?\]\s*(.*)$',
                 line_for_match
             )
 
@@ -174,9 +174,9 @@ class LyricsProcessor:
                         print(f"移除行: {line}")
                     continue
 
-            timestamp_prefix_pattern = r'^(?:\s*\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\])+\s*'
+            timestamp_prefix_pattern = r'^(?:\s*\[-?\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\])+\s*'
             # 检查是否包含时间戳 [xx:xx.xx] / [xx:xx]
-            has_timestamp = re.search(r'\[\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\]', line_for_match) is not None
+            has_timestamp = re.search(r'\[-?\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?\]', line_for_match) is not None
             # 提取一个或多个前置时间戳后的内容
             content_after_timestamp = re.sub(timestamp_prefix_pattern, '', line_for_match).strip()
             if self._is_empty_timestamp_line(line_for_match):
