@@ -877,6 +877,11 @@
                         <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.model" placeholder="AI Model，例如 gpt-4o-mini">
                         <input type="password" class="form-control form-control-sm mt-1" v-model.trim="aiConfig.apiKey" placeholder="AI API Key">
                         <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.timeout" placeholder="超时秒数（默认 6）">
+                        <div class="inline-actions mt-1">
+                            <button class="btn btn-outline-success compact-btn" @click="saveAiConfigToStorage">保存 AI 配置</button>
+                            <button class="btn btn-outline-secondary compact-btn" @click="clearAiConfigStorage">清空 AI 配置</button>
+                        </div>
+                        <div class="muted mt-1">[[ aiConfigSavedAt ? ('已保存：' + aiConfigSavedAt) : '尚未保存到浏览器' ]]</div>
                     </div>
                     <div class="inline-actions mt-1">
                         <button class="btn btn-primary compact-btn" :disabled="pathProcessing" @click="processPath">
@@ -927,6 +932,11 @@
                     <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.model" placeholder="AI Model，例如 gpt-4o-mini">
                     <input type="password" class="form-control form-control-sm mt-1" v-model.trim="aiConfig.apiKey" placeholder="AI API Key">
                     <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.timeout" placeholder="超时秒数（默认 6）">
+                    <div class="inline-actions mt-1">
+                        <button class="btn btn-outline-success compact-btn" @click="saveAiConfigToStorage">保存 AI 配置</button>
+                        <button class="btn btn-outline-secondary compact-btn" @click="clearAiConfigStorage">清空 AI 配置</button>
+                    </div>
+                    <div class="muted mt-1">[[ aiConfigSavedAt ? ('已保存：' + aiConfigSavedAt) : '尚未保存到浏览器' ]]</div>
                 </div>
                 <input ref="fileInput" type="file" multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFilesSelected">
                 <input ref="folderInput" type="file" webkitdirectory directory multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFolderSelected">
@@ -1212,6 +1222,7 @@ const vueApp = createApp({
                 apiKey: '',
                 timeout: '6'
             },
+            aiConfigSavedAt: '',
             pathProcessing: false,
             pathResult: null,
             pathForm: {
@@ -1263,19 +1274,36 @@ const vueApp = createApp({
                 this.aiConfig.model = String(parsed.model || '');
                 this.aiConfig.apiKey = String(parsed.apiKey || '');
                 this.aiConfig.timeout = String(parsed.timeout || '6');
+                this.aiConfigSavedAt = String(parsed.savedAt || '');
             } catch (_) {}
         },
         saveAiConfigToStorage() {
             try {
+                const savedAt = new Date().toLocaleString();
                 const payload = {
                     aiEnabled: this.aiEnabled,
                     baseUrl: this.aiConfig.baseUrl,
                     model: this.aiConfig.model,
                     apiKey: this.aiConfig.apiKey,
-                    timeout: this.aiConfig.timeout
+                    timeout: this.aiConfig.timeout,
+                    savedAt
                 };
                 window.localStorage.setItem('music_meta_cleaner_ai_config', JSON.stringify(payload));
+                this.aiConfigSavedAt = savedAt;
+                this.showToast('AI 配置已保存到浏览器', 'success');
             } catch (_) {}
+        },
+        clearAiConfigStorage() {
+            try {
+                window.localStorage.removeItem('music_meta_cleaner_ai_config');
+            } catch (_) {}
+            this.aiEnabled = true;
+            this.aiConfig.baseUrl = '';
+            this.aiConfig.model = '';
+            this.aiConfig.apiKey = '';
+            this.aiConfig.timeout = '6';
+            this.aiConfigSavedAt = '';
+            this.showToast('已清空 AI 配置', 'warning');
         },
         basename(path) {
             if (!path) return '';
