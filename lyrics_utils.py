@@ -14,50 +14,121 @@ from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4
 
 
+DEFAULT_HEADER_KEYWORDS = [
+    # 中文常见元信息关键词
+    '作词', '作词：', '词', '词：', '填词', '填词：', '歌词', '歌词：',
+    '作曲', '作曲：', '曲', '曲：', '谱曲', '谱曲：', '词曲', '词曲：',
+    '编曲', '编曲：', '配器', '配器：', '和声', '和声：', '和音', '和音：', '配唱', '配唱：',
+    '演唱', '演唱：', '歌手', '歌手：', '主唱', '主唱：', '合唱', '合唱：',
+    '制作', '制作：', '制作人', '制作人：', '监制', '监制：', '制片', '制片：',
+    '录音', '录音：', '录音师', '录音师：', '录音棚', '录音棚：', '录音室', '录音室：',
+    '混音', '混音：', '缩混', '缩混：', '混音师', '混音师：', '后期', '后期：',
+    '母带', '母带：', '母带工程师', '母带工程师：', '母带处理', '母带处理：',
+    '文案', '文案：', '策划', '策划：', '统筹', '统筹：', '推广', '推广：', '宣传', '宣传：', '企划', '企划：',
+    '发行', '发行：', '发行方', '发行方：', '发行公司', '发行公司：',
+    '出品', '出品：', '出品人', '出品人：', '出品公司', '出品公司：', '唱片公司', '唱片公司：',
+    '版权', '版权：', '版权所有', '版权归', '授权', '授权：', '未经许可', '禁止转载',
+    '鸣谢', '鸣谢：', '特别鸣谢', '特别鸣谢：', '提供', '提供：', '作品', '作品：',
+    '词作者', '词作者：', '曲作者', '曲作者：', '编者', '编者：',
+    '翻译', '翻译：', '译者', '译者：', '歌词翻译', '歌词翻译：', '音译', '音译：',
+    'LRC', 'LRC：', 'lrc', 'lrc：', '歌词制作', '歌词制作：', '歌词编辑', '歌词编辑：',
+    'OP', 'SP', '詞：', '詞', '作詞', '作詞：', '編曲', '編曲：', '詩曲',
+
+    # 英文常见元信息关键词
+    'Produced by', 'Lyrics by', 'Composed by', 'Lyrics by:', 'Composed by:',
+    'Lyricist', 'Composer', 'Arranger', 'Arrangement', 'Written by', 'Music by', 'Words by',
+    'Artist', 'Singer', 'Vocal', 'Vocals', 'Performed by', 'Feat.', 'Featuring',
+    'Producer', 'Executive Producer', 'Co-Producer', 'Production',
+    'Recording', 'Recorded by', 'Tracking', 'Engineered by', 'Audio Engineer',
+    'Mixed by', 'Mixing', 'Mix Engineer', 'Mastered by', 'Mastering', 'Remastered by',
+    'Chorus', 'Background Vocal', 'Backing Vocal', 'Harmony',
+    'Album', 'Title', 'Song', 'Track', 'Disc', 'Version', 'Original', 'Remix',
+    'Publisher', 'Publishing', 'Label', 'Distributed by', 'Distribution',
+    'Copyright', 'All Rights Reserved', 'Licensed by', 'ISRC',
+    'Transcribed by', 'Translated by', 'Subtitle', 'Subtitles', 'Source',
+    'Orchestration by', 'Drum Programming', 'Drums by', 'Violin and Viola by',
+    'Vocals recorded by', '©'
+]
+
+
 class LyricsProcessor:
     """歌词处理器类"""
     
     def __init__(self):
-        # 扩展所有常见杂项关键词
-        self.header_keywords = [
-            # 中文常见元信息关键词
-            '作词', '作词：', '词', '词：', '填词', '填词：', '歌词', '歌词：',
-            '作曲', '作曲：', '曲', '曲：', '谱曲', '谱曲：', '词曲', '词曲：',
-            '编曲', '编曲：', '配器', '配器：', '和声', '和声：', '和音', '和音：', '配唱', '配唱：',
-            '演唱', '演唱：', '歌手', '歌手：', '主唱', '主唱：', '合唱', '合唱：',
-            '制作', '制作：', '制作人', '制作人：', '监制', '监制：', '制片', '制片：',
-            '录音', '录音：', '录音师', '录音师：', '录音棚', '录音棚：', '录音室', '录音室：',
-            '混音', '混音：', '缩混', '缩混：', '混音师', '混音师：', '后期', '后期：',
-            '母带', '母带：', '母带工程师', '母带工程师：', '母带处理', '母带处理：',
-            '文案', '文案：', '策划', '策划：', '统筹', '统筹：', '推广', '推广：', '宣传', '宣传：', '企划', '企划：',
-            '发行', '发行：', '发行方', '发行方：', '发行公司', '发行公司：',
-            '出品', '出品：', '出品人', '出品人：', '出品公司', '出品公司：', '唱片公司', '唱片公司：',
-            '版权', '版权：', '版权所有', '版权归', '授权', '授权：', '未经许可', '禁止转载',
-            '鸣谢', '鸣谢：', '特别鸣谢', '特别鸣谢：', '提供', '提供：', '作品', '作品：',
-            '词作者', '词作者：', '曲作者', '曲作者：', '编者', '编者：',
-            '翻译', '翻译：', '译者', '译者：', '歌词翻译', '歌词翻译：', '音译', '音译：',
-            'LRC', 'LRC：', 'lrc', 'lrc：', '歌词制作', '歌词制作：', '歌词编辑', '歌词编辑：',
-            'OP', 'SP', '詞：', '詞', '作詞', '作詞：', '編曲', '編曲：', '詩曲',
-
-            # 英文常见元信息关键词
-            'Produced by', 'Lyrics by', 'Composed by', 'Lyrics by:', 'Composed by:',
-            'Lyricist', 'Composer', 'Arranger', 'Arrangement', 'Written by', 'Music by', 'Words by',
-            'Artist', 'Singer', 'Vocal', 'Vocals', 'Performed by', 'Feat.', 'Featuring',
-            'Producer', 'Executive Producer', 'Co-Producer', 'Production',
-            'Recording', 'Recorded by', 'Tracking', 'Engineered by', 'Audio Engineer',
-            'Mixed by', 'Mixing', 'Mix Engineer', 'Mastered by', 'Mastering', 'Remastered by',
-            'Chorus', 'Background Vocal', 'Backing Vocal', 'Harmony',
-            'Album', 'Title', 'Song', 'Track', 'Disc', 'Version', 'Original', 'Remix',
-            'Publisher', 'Publishing', 'Label', 'Distributed by', 'Distribution',
-            'Copyright', 'All Rights Reserved', 'Licensed by', 'ISRC',
-            'Transcribed by', 'Translated by', 'Subtitle', 'Subtitles', 'Source',
-            'Orchestration by', 'Drum Programming', 'Drums by', 'Violin and Viola by',
-            'Vocals recorded by', '©'
-        ]
-        self.header_keywords_lower = [kw.lower() for kw in self.header_keywords]        
+        self.default_header_keywords = list(DEFAULT_HEADER_KEYWORDS)
+        self.header_keywords = []
+        self.header_keywords_lower = []
         # 支持的音频格式
         self.supported_formats = {'.mp3', '.flac', '.m4a'}
         self.ai_cache = {}
+        self.settings_path = None
+        self.last_saved_at = ''
+        self._apply_header_keywords(self.default_header_keywords)
+
+    def _normalize_keywords(self, keywords):
+        normalized = []
+        seen = set()
+        for item in keywords or []:
+            keyword = str(item or '').strip()
+            if not keyword:
+                continue
+            if keyword in seen:
+                continue
+            seen.add(keyword)
+            normalized.append(keyword)
+        return normalized
+
+    def _apply_header_keywords(self, keywords):
+        normalized = self._normalize_keywords(keywords)
+        self.header_keywords = normalized
+        self.header_keywords_lower = [kw.lower() for kw in normalized]
+
+    def get_default_keywords(self):
+        return list(self.default_header_keywords)
+
+    def get_header_keywords(self):
+        return list(self.header_keywords)
+
+    def configure_settings_path(self, settings_path=None):
+        self.settings_path = settings_path
+        self.load_header_keywords()
+
+    def load_header_keywords(self):
+        self.last_saved_at = ''
+        if not self.settings_path or not os.path.exists(self.settings_path):
+            self._apply_header_keywords(self.default_header_keywords)
+            return self.get_header_keywords()
+
+        try:
+            with open(self.settings_path, 'r', encoding='utf-8') as file_obj:
+                data = json.load(file_obj)
+            keywords = data.get('keywords', self.default_header_keywords)
+            self.last_saved_at = str(data.get('updated_at', '') or '')
+            self._apply_header_keywords(keywords)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            self.last_saved_at = ''
+            self._apply_header_keywords(self.default_header_keywords)
+        return self.get_header_keywords()
+
+    def save_header_keywords(self, keywords, updated_at=''):
+        normalized = self._normalize_keywords(keywords)
+        if not self.settings_path:
+            raise ValueError('未配置关键词设置文件路径')
+
+        settings_dir = os.path.dirname(self.settings_path)
+        if settings_dir:
+            os.makedirs(settings_dir, exist_ok=True)
+
+        payload = {
+            'keywords': normalized,
+            'updated_at': str(updated_at or '')
+        }
+        with open(self.settings_path, 'w', encoding='utf-8') as file_obj:
+            json.dump(payload, file_obj, ensure_ascii=False, indent=2)
+
+        self.last_saved_at = payload['updated_at']
+        self._apply_header_keywords(normalized)
+        return self.get_header_keywords()
 
     def _is_empty_timestamp_line(self, line_for_match):
         """判断是否为仅时间戳、无歌词文本的空行"""

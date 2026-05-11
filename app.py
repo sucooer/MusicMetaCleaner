@@ -8,12 +8,20 @@ import re
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
-from lyrics_utils import clean_lyrics, get_lyrics_from_file, save_lyrics_to_file, is_audio_file, process_audio_file
+from lyrics_utils import (
+    clean_lyrics,
+    get_lyrics_from_file,
+    save_lyrics_to_file,
+    is_audio_file,
+    process_audio_file,
+    lyrics_processor,
+)
 
 app = Flask(__name__)
 # app.config['MAX_CONTENT_LENGTH'] = None  # 不限制上传大小
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
+app.config['KEYWORD_SETTINGS_FILENAME'] = '.lyrics-cleaner-keywords.json'
 
 # 确保上传和处理文件夹存在
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -24,6 +32,32 @@ temp_files = []
 
 # 文件名映射表：存储内部文件名到原始文件名的映射
 filename_mapping = {}
+
+
+def get_keyword_settings_path():
+    """返回关键词设置文件路径"""
+    return os.path.join(
+        app.config['UPLOAD_FOLDER'],
+        app.config.get('KEYWORD_SETTINGS_FILENAME', '.lyrics-cleaner-keywords.json')
+    )
+
+
+def configure_keyword_settings_storage():
+    """根据当前运行目录重新绑定关键词设置存储"""
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
+    lyrics_processor.configure_settings_path(get_keyword_settings_path())
+
+
+def _serialize_keyword_settings():
+    return {
+        'keywords': lyrics_processor.get_header_keywords(),
+        'default_keywords': lyrics_processor.get_default_keywords(),
+        'saved_at': lyrics_processor.last_saved_at
+    }
+
+
+configure_keyword_settings_storage()
 
 
 def _to_bool(value, default=True):
@@ -120,6 +154,27 @@ def _normalize_filter_ext(filter_ext_raw):
         normalized.append(ext)
 
     return sorted(set(normalized)) if normalized else None
+
+
+@app.route('/settings/lyrics_keywords', methods=['GET', 'POST'])
+def lyrics_keyword_settings():
+    """获取或保存歌词清理关键词设置"""
+    if request.method == 'GET':
+        lyrics_processor.load_header_keywords()
+        return jsonify(_serialize_keyword_settings())
+
+    data = request.get_json(silent=True) or {}
+    keywords = data.get('keywords')
+    if not isinstance(keywords, list):
+        return jsonify({'error': 'keywords 必须是数组'}), 400
+
+    saved_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    try:
+        lyrics_processor.save_header_keywords(keywords, updated_at=saved_at)
+    except (OSError, ValueError) as exc:
+        return jsonify({'error': f'保存关键词失败: {str(exc)}'}), 500
+
+    return jsonify(_serialize_keyword_settings())
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
@@ -902,10 +957,14 @@ def export_failed_files():
 def cleanup_files():
     """清理临时文件"""
     try:
+        protected_upload_files = {os.path.abspath(get_keyword_settings_path())}
+
         # 清理上传文件夹
         for root, dirs, files in os.walk(app.config['UPLOAD_FOLDER'], topdown=False):
             for file in files:
                 file_path = os.path.join(root, file)
+                if os.path.abspath(file_path) in protected_upload_files:
+                    continue
                 try:
                     os.remove(file_path)
                 except Exception as e:

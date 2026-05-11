@@ -297,14 +297,10 @@ python ly.py "D:\Music" --filter-ext .mp3,.flac,.m4a
 ## 🔄 开发说明
 
 ### 📝 自定义清理规则
-编辑 `lyrics_utils.py` 中的 `header_keywords` 列表：
-```python
-self.header_keywords = [
-    '作词', '作曲', '编曲', '演唱', '制作',
-    # 添加你的自定义关键词
-    '你的关键词'
-]
-```
+在 Web 页面顶部的“清理设置”中直接管理关键词：
+- 支持逐个添加，或用逗号 / 换行一次添加多个关键词
+- 支持删除、刷新、恢复默认并保存
+- 设置会保存到服务器端的 `uploads/.lyrics-cleaner-keywords.json`，容器重建后仍会保留
 
 ### 🎯 扩展支持格式
 在 `lyrics_utils.py` 中添加新格式支持：
@@ -383,5 +379,4 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - 📦 **备份**：使用 `--backup` 参数双重保险
 
 **首次使用会自动下载安装依赖包，请保持网络连接。安装完成后即可离线使用。**
-
 

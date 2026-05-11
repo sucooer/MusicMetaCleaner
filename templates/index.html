@@ -225,7 +225,7 @@
 
         .dashboard.mode-upload {
             grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-            grid-template-rows: auto minmax(0, 1fr);
+            grid-template-rows: auto auto minmax(0, 1fr);
             align-items: stretch;
         }
 
@@ -234,22 +234,28 @@
             display: contents;
         }
 
-        .dashboard.mode-upload .upload-panel {
+        .dashboard.mode-upload .settings-panel {
             grid-column: 1;
             grid-row: 1;
             height: auto;
         }
 
-        .dashboard.mode-upload .result-download-panel {
+        .dashboard.mode-upload .upload-panel {
             grid-column: 1;
             grid-row: 2;
+            height: auto;
+        }
+
+        .dashboard.mode-upload .result-download-panel {
+            grid-column: 1;
+            grid-row: 3;
             height: auto;
             min-height: clamp(280px, 34vh, 440px);
         }
 
         .dashboard.mode-upload .list-preview-panel {
             grid-column: 2;
-            grid-row: 1 / span 2;
+            grid-row: 1 / span 3;
             height: auto;
             min-height: clamp(410px, 52vh, 600px);
         }
@@ -648,6 +654,79 @@
             background: rgba(15, 23, 42, 0.42);
         }
 
+        .settings-panel,
+        .settings-panel .panel-body {
+            overflow: visible;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .settings-card {
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.42);
+            padding: 10px;
+        }
+
+        .settings-card-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .settings-title {
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+
+        .inline-input {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .inline-input .form-control {
+            flex: 1 1 220px;
+        }
+
+        .keyword-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            max-height: 176px;
+            overflow: auto;
+            padding-right: 2px;
+        }
+
+        .keyword-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(96, 165, 250, 0.35);
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.16);
+            color: var(--text);
+            padding: 5px 10px;
+            font-size: 0.76rem;
+            line-height: 1.2;
+        }
+
+        .keyword-chip:hover {
+            border-color: rgba(56, 189, 248, 0.6);
+            background: rgba(37, 99, 235, 0.24);
+        }
+
+        .keyword-chip i {
+            font-size: 0.7rem;
+        }
+
         .path-picker-list {
             max-height: 320px;
             overflow: auto;
@@ -772,6 +851,7 @@
                 display: grid;
             }
 
+            .dashboard.mode-upload .settings-panel,
             .dashboard.mode-upload .upload-panel,
             .dashboard.mode-upload .result-download-panel,
             .dashboard.mode-upload .list-preview-panel {
@@ -782,6 +862,7 @@
         }
 
         @media (max-width: 900px) {
+            .settings-grid,
             .upload-workspace {
                 grid-template-columns: 1fr;
             }
@@ -837,6 +918,83 @@
 
     <main class="dashboard" :class="'mode-' + uiMode">
         <div class="flow" v-if="uiMode === 'path'">
+        <section class="panel settings-panel">
+            <div class="panel-head">
+                <h3><i class="bi bi-sliders"></i>清理设置</h3>
+                <span class="muted">关键词保存在服务器，AI 配置保存在当前浏览器</span>
+            </div>
+            <div class="panel-body">
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <div class="settings-card-head">
+                            <div>
+                                <div class="settings-title">关键词规则</div>
+                                <div class="muted">支持逗号或换行一次添加多个关键词，保存后立即参与歌词清理。</div>
+                            </div>
+                            <span class="mini-badge ok">[[ keywordSettings.keywords.length ]] 项</span>
+                        </div>
+                        <div class="inline-input">
+                            <input
+                                class="form-control"
+                                v-model.trim="keywordSettings.draft"
+                                @keydown.enter.prevent="appendKeywordDraft"
+                                placeholder="例如：作词，作曲，编曲">
+                            <button class="btn btn-outline-primary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="appendKeywordDraft">
+                                <i class="bi bi-plus-circle me-1"></i>添加
+                            </button>
+                        </div>
+                        <div class="keyword-list mt-2" v-if="keywordSettings.keywords.length">
+                            <button
+                                type="button"
+                                class="keyword-chip"
+                                v-for="keyword in keywordSettings.keywords"
+                                :key="keyword"
+                                @click="removeKeyword(keyword)">
+                                <span>[[ keyword ]]</span>
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <div class="empty py-3 mt-2" v-else>
+                            <i class="bi bi-tags"></i> 当前没有自定义关键词，保存空列表后仅保留固定规则和 AI 识别
+                        </div>
+                        <div class="inline-actions mt-2">
+                            <button class="btn btn-primary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="saveKeywordSettings">
+                                [[ keywordSettings.saving ? '保存中...' : '保存关键词' ]]
+                            </button>
+                            <button class="btn btn-outline-secondary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="restoreDefaultKeywords">
+                                恢复默认并保存
+                            </button>
+                            <button class="btn btn-outline-secondary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="loadKeywordSettings(true)">
+                                刷新
+                            </button>
+                        </div>
+                        <div class="muted mt-1">[[ keywordSettings.savedAt ? ('服务器已保存：' + keywordSettings.savedAt) : '当前使用默认关键词，尚未保存自定义规则' ]]</div>
+                    </div>
+                    <div class="settings-card">
+                        <div class="settings-card-head">
+                            <div>
+                                <div class="settings-title">AI 辅助识别</div>
+                                <div class="muted">仅使用你自定义的 AI 提供商配置；未填写时自动退回本地规则。</div>
+                            </div>
+                            <span class="mini-badge" :class="aiEnabled ? 'ok' : 'no'">[[ aiEnabled ? '已启用' : '已关闭' ]]</span>
+                        </div>
+                        <label class="form-check">
+                            <input type="checkbox" class="form-check-input" v-model="aiEnabled">
+                            <span class="form-check-label">启用 AI 识别元信息行</span>
+                        </label>
+                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.baseUrl" placeholder="AI Base URL，例如 https://api.openai.com/v1">
+                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.model" placeholder="AI Model，例如 gpt-4o-mini">
+                        <input type="password" class="form-control form-control-sm mt-1" v-model.trim="aiConfig.apiKey" placeholder="AI API Key">
+                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.timeout" placeholder="超时秒数（默认 6）">
+                        <div class="inline-actions mt-2">
+                            <button class="btn btn-outline-success compact-btn" @click="saveAiConfigToStorage">保存 AI 配置</button>
+                            <button class="btn btn-outline-secondary compact-btn" @click="clearAiConfigStorage">清空 AI 配置</button>
+                        </div>
+                        <div class="muted mt-1">[[ aiConfigSavedAt ? ('已保存：' + aiConfigSavedAt) : '尚未保存到浏览器' ]]</div>
+                    </div>
+                </div>
+            </div>
+        </section>
         <section class="panel upload-panel">
             <div class="panel-head">
                 <h3><i class="bi bi-terminal"></i>路径模式</h3>
@@ -867,22 +1025,7 @@
                             <span class="form-check-label">备份原文件</span>
                         </label>
                     </div>
-                    <div class="mt-2">
-                        <label class="form-check">
-                            <input type="checkbox" class="form-check-input" v-model="aiEnabled">
-                            <span class="form-check-label">启用 AI 识别元信息行</span>
-                        </label>
-                        <div class="muted mt-1">仅使用你自定义的 AI 提供商配置；未填写时自动退回本地规则。</div>
-                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.baseUrl" placeholder="AI Base URL，例如 https://api.openai.com/v1">
-                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.model" placeholder="AI Model，例如 gpt-4o-mini">
-                        <input type="password" class="form-control form-control-sm mt-1" v-model.trim="aiConfig.apiKey" placeholder="AI API Key">
-                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.timeout" placeholder="超时秒数（默认 6）">
-                        <div class="inline-actions mt-1">
-                            <button class="btn btn-outline-success compact-btn" @click="saveAiConfigToStorage">保存 AI 配置</button>
-                            <button class="btn btn-outline-secondary compact-btn" @click="clearAiConfigStorage">清空 AI 配置</button>
-                        </div>
-                        <div class="muted mt-1">[[ aiConfigSavedAt ? ('已保存：' + aiConfigSavedAt) : '尚未保存到浏览器' ]]</div>
-                    </div>
+                    <div class="muted mt-2">清理关键词与 AI 配置请在上方“清理设置”中统一维护。</div>
                     <div class="inline-actions mt-1">
                         <button class="btn btn-primary compact-btn" :disabled="pathProcessing" @click="processPath">
                             <i class="bi bi-play-circle me-1"></i>[[ pathProcessing ? '处理中...' : '执行路径模式' ]]
@@ -893,6 +1036,83 @@
         </section>
         </div>
         <div class="flow" v-else>
+        <section class="panel settings-panel">
+            <div class="panel-head">
+                <h3><i class="bi bi-sliders"></i>清理设置</h3>
+                <span class="muted">关键词保存在服务器，AI 配置保存在当前浏览器</span>
+            </div>
+            <div class="panel-body">
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <div class="settings-card-head">
+                            <div>
+                                <div class="settings-title">关键词规则</div>
+                                <div class="muted">支持逗号或换行一次添加多个关键词，保存后立即参与歌词清理。</div>
+                            </div>
+                            <span class="mini-badge ok">[[ keywordSettings.keywords.length ]] 项</span>
+                        </div>
+                        <div class="inline-input">
+                            <input
+                                class="form-control"
+                                v-model.trim="keywordSettings.draft"
+                                @keydown.enter.prevent="appendKeywordDraft"
+                                placeholder="例如：作词，作曲，编曲">
+                            <button class="btn btn-outline-primary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="appendKeywordDraft">
+                                <i class="bi bi-plus-circle me-1"></i>添加
+                            </button>
+                        </div>
+                        <div class="keyword-list mt-2" v-if="keywordSettings.keywords.length">
+                            <button
+                                type="button"
+                                class="keyword-chip"
+                                v-for="keyword in keywordSettings.keywords"
+                                :key="keyword"
+                                @click="removeKeyword(keyword)">
+                                <span>[[ keyword ]]</span>
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <div class="empty py-3 mt-2" v-else>
+                            <i class="bi bi-tags"></i> 当前没有自定义关键词，保存空列表后仅保留固定规则和 AI 识别
+                        </div>
+                        <div class="inline-actions mt-2">
+                            <button class="btn btn-primary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="saveKeywordSettings">
+                                [[ keywordSettings.saving ? '保存中...' : '保存关键词' ]]
+                            </button>
+                            <button class="btn btn-outline-secondary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="restoreDefaultKeywords">
+                                恢复默认并保存
+                            </button>
+                            <button class="btn btn-outline-secondary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="loadKeywordSettings(true)">
+                                刷新
+                            </button>
+                        </div>
+                        <div class="muted mt-1">[[ keywordSettings.savedAt ? ('服务器已保存：' + keywordSettings.savedAt) : '当前使用默认关键词，尚未保存自定义规则' ]]</div>
+                    </div>
+                    <div class="settings-card">
+                        <div class="settings-card-head">
+                            <div>
+                                <div class="settings-title">AI 辅助识别</div>
+                                <div class="muted">仅使用你自定义的 AI 提供商配置；未填写时自动退回本地规则。</div>
+                            </div>
+                            <span class="mini-badge" :class="aiEnabled ? 'ok' : 'no'">[[ aiEnabled ? '已启用' : '已关闭' ]]</span>
+                        </div>
+                        <label class="form-check">
+                            <input type="checkbox" class="form-check-input" v-model="aiEnabled">
+                            <span class="form-check-label">启用 AI 识别元信息行</span>
+                        </label>
+                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.baseUrl" placeholder="AI Base URL，例如 https://api.openai.com/v1">
+                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.model" placeholder="AI Model，例如 gpt-4o-mini">
+                        <input type="password" class="form-control form-control-sm mt-1" v-model.trim="aiConfig.apiKey" placeholder="AI API Key">
+                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.timeout" placeholder="超时秒数（默认 6）">
+                        <div class="inline-actions mt-2">
+                            <button class="btn btn-outline-success compact-btn" @click="saveAiConfigToStorage">保存 AI 配置</button>
+                            <button class="btn btn-outline-secondary compact-btn" @click="clearAiConfigStorage">清空 AI 配置</button>
+                        </div>
+                        <div class="muted mt-1">[[ aiConfigSavedAt ? ('已保存：' + aiConfigSavedAt) : '尚未保存到浏览器' ]]</div>
+                    </div>
+                </div>
+            </div>
+        </section>
         <section class="panel upload-panel">
             <div class="panel-head">
                 <h3><i class="bi bi-cloud-upload"></i>上传</h3>
@@ -922,22 +1142,7 @@
                         <i class="bi bi-gear me-1"></i>处理全部可处理文件
                     </button>
                 </div>
-                <div class="mb-2">
-                    <label class="form-check">
-                        <input type="checkbox" class="form-check-input" v-model="aiEnabled">
-                        <span class="form-check-label">启用 AI 识别元信息行</span>
-                    </label>
-                    <div class="muted mt-1">仅使用你自定义的 AI 提供商配置；未填写时自动退回本地规则。</div>
-                    <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.baseUrl" placeholder="AI Base URL，例如 https://api.openai.com/v1">
-                    <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.model" placeholder="AI Model，例如 gpt-4o-mini">
-                    <input type="password" class="form-control form-control-sm mt-1" v-model.trim="aiConfig.apiKey" placeholder="AI API Key">
-                    <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.timeout" placeholder="超时秒数（默认 6）">
-                    <div class="inline-actions mt-1">
-                        <button class="btn btn-outline-success compact-btn" @click="saveAiConfigToStorage">保存 AI 配置</button>
-                        <button class="btn btn-outline-secondary compact-btn" @click="clearAiConfigStorage">清空 AI 配置</button>
-                    </div>
-                    <div class="muted mt-1">[[ aiConfigSavedAt ? ('已保存：' + aiConfigSavedAt) : '尚未保存到浏览器' ]]</div>
-                </div>
+                <div class="muted mb-2">清理关键词与 AI 配置请在上方“清理设置”中统一维护。</div>
                 <input ref="fileInput" type="file" multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFilesSelected">
                 <input ref="folderInput" type="file" webkitdirectory directory multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFolderSelected">
                 <div class="muted" v-if="uploadFolderStats">
@@ -1223,6 +1428,14 @@ const vueApp = createApp({
                 timeout: '6'
             },
             aiConfigSavedAt: '',
+            keywordSettings: {
+                loading: false,
+                saving: false,
+                draft: '',
+                keywords: [],
+                defaultKeywords: [],
+                savedAt: ''
+            },
             pathProcessing: false,
             pathResult: null,
             pathForm: {
@@ -1261,8 +1474,95 @@ const vueApp = createApp({
         this.toastInstance = new bootstrap.Toast(this.$refs.toastEl, { delay: 2600 });
         this.pathPickerModal = new bootstrap.Modal(this.$refs.pathPickerModalEl);
         this.loadAiConfigFromStorage();
+        this.loadKeywordSettings();
     },
     methods: {
+        splitKeywordDraft(rawValue) {
+            if (!rawValue) return [];
+            return String(rawValue)
+                .split(/[\n,，]+/)
+                .map(item => item.trim())
+                .filter(Boolean);
+        },
+        mergeKeywords(items) {
+            const merged = [];
+            const seen = new Set();
+            (items || []).forEach((item) => {
+                const keyword = String(item || '').trim();
+                if (!keyword || seen.has(keyword)) return;
+                seen.add(keyword);
+                merged.push(keyword);
+            });
+            return merged;
+        },
+        appendKeywordDraft() {
+            const incoming = this.splitKeywordDraft(this.keywordSettings.draft);
+            if (incoming.length === 0) {
+                this.showToast('请输入要添加的关键词', 'warning');
+                return;
+            }
+            this.keywordSettings.keywords = this.mergeKeywords([
+                ...this.keywordSettings.keywords,
+                ...incoming
+            ]);
+            this.keywordSettings.draft = '';
+        },
+        removeKeyword(keyword) {
+            this.keywordSettings.keywords = this.keywordSettings.keywords.filter(item => item !== keyword);
+        },
+        async loadKeywordSettings(showToast = false) {
+            this.keywordSettings.loading = true;
+            try {
+                const response = await fetch('/settings/lyrics_keywords');
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+                this.keywordSettings.keywords = this.mergeKeywords(data.keywords || []);
+                this.keywordSettings.defaultKeywords = this.mergeKeywords(data.default_keywords || []);
+                this.keywordSettings.savedAt = data.saved_at || '';
+                if (showToast) {
+                    this.showToast('关键词设置已刷新', 'success');
+                }
+            } catch (error) {
+                this.showToast(`加载关键词失败: ${error.message}`, 'error');
+            } finally {
+                this.keywordSettings.loading = false;
+            }
+        },
+        async restoreDefaultKeywords() {
+            if (!this.keywordSettings.defaultKeywords.length) {
+                this.showToast('没有可恢复的默认关键词', 'warning');
+                return;
+            }
+            this.keywordSettings.keywords = [...this.keywordSettings.defaultKeywords];
+            await this.saveKeywordSettings();
+        },
+        async saveKeywordSettings() {
+            this.keywordSettings.saving = true;
+            try {
+                const response = await fetch('/settings/lyrics_keywords', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        keywords: this.mergeKeywords(this.keywordSettings.keywords)
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+                this.keywordSettings.keywords = this.mergeKeywords(data.keywords || []);
+                this.keywordSettings.defaultKeywords = this.mergeKeywords(data.default_keywords || []);
+                this.keywordSettings.savedAt = data.saved_at || '';
+                this.keywordSettings.draft = '';
+                this.showToast('关键词设置已保存到服务器', 'success');
+            } catch (error) {
+                this.showToast(`保存关键词失败: ${error.message}`, 'error');
+            } finally {
+                this.keywordSettings.saving = false;
+            }
+        },
         loadAiConfigFromStorage() {
             try {
                 const raw = window.localStorage.getItem('music_meta_cleaner_ai_config');
