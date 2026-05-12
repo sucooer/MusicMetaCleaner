@@ -6,8 +6,9 @@ const methodsModule = (typeof window !== 'undefined' && window.MusicMetaCleanerM
     ? window.MusicMetaCleanerMethods
     : require('./js/methods.js');
 
-const { createInitialState, appComputed } = stateModule;
-const { appMethods } = methodsModule;
+const createInitialStateFn = stateModule.createInitialState;
+const appComputedMap = stateModule.appComputed;
+const appMethodsMap = methodsModule.appMethods;
 
 function handleMounted() {
     this.toastInstance = new bootstrap.Toast(this.$refs.toastEl, { delay: 2600 });
@@ -21,10 +22,10 @@ function handleMounted() {
 
 function createAppOptions() {
     return {
-        data: createInitialState,
-        computed: appComputed,
+        data: createInitialStateFn,
+        computed: appComputedMap,
         mounted: handleMounted,
-        methods: appMethods
+        methods: appMethodsMap
     };
 }
 
@@ -37,9 +38,9 @@ function mountBrowserApp() {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        createInitialState,
+        createInitialState: createInitialStateFn,
         createAppOptions,
-        appMethods,
+        appMethods: appMethodsMap,
         mountBrowserApp
     };
 }

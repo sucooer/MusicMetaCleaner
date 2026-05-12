@@ -102,6 +102,23 @@ def build_runtime_config():
     }
 
 
+def build_asset_versions(static_root):
+    asset_names = (
+        'app.css',
+        'app.js',
+        os.path.join('js', 'state.js'),
+        os.path.join('js', 'methods.js'),
+    )
+    versions = {}
+    for asset_name in asset_names:
+        asset_path = os.path.join(static_root, asset_name)
+        try:
+            versions[asset_name] = str(int(os.path.getmtime(asset_path)))
+        except OSError:
+            versions[asset_name] = '0'
+    return versions
+
+
 def serialize_keyword_settings(lyrics_processor):
     return {
         'keywords': lyrics_processor.get_header_keywords(),

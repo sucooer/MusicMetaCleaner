@@ -16,6 +16,7 @@ from lyrics_utils import (
     lyrics_processor,
 )
 from services import (
+    build_asset_versions,
     build_runtime_config,
     export_failed_files_report,
     extract_ai_config,
@@ -43,7 +44,17 @@ temp_files = []
 
 @bp.route('/')
 def index():
-    return render_template('index.html', runtime_config=build_runtime_config())
+    response = render_template(
+        'index.html',
+        runtime_config=build_runtime_config(),
+        asset_versions=build_asset_versions(current_app.static_folder)
+    )
+    from flask import make_response
+    resp = make_response(response)
+    resp.headers['Cache-Control'] = 'no-store, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 @bp.route('/settings/lyrics_keywords', methods=['GET', 'POST'])
 def lyrics_keyword_settings():
