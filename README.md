@@ -30,6 +30,11 @@ docker compose down
 ```
 访问地址：http://localhost:5000
 
+说明：
+- Docker 容器内默认使用 Gunicorn 提供 Web 服务
+- 路径模式默认自动带入挂载后的 `/media`
+- 如果要限制或改为其他根目录，可设置环境变量 `MUSIC_CLEANER_ALLOWED_PATH`
+
 ### ⚡ 命令行使用（推荐复杂目录）
 ```bash
 # 🎯 交互式模式（新手友好）
@@ -379,4 +384,3 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - 📦 **备份**：使用 `--backup` 参数双重保险
 
 **首次使用会自动下载安装依赖包，请保持网络连接。安装完成后即可离线使用。**
-

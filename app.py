@@ -23,6 +23,7 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 app.config['KEYWORD_SETTINGS_FILENAME'] = '.lyrics-cleaner-keywords.json'
 app.config['EXECUTION_LOG_FILENAME'] = '.execution-logs.json'
+app.config['FILENAME_MAPPING_FILENAME'] = '.filename-mapping.json'
 
 # 确保上传和处理文件夹存在
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -31,8 +32,44 @@ os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
 # 临时文件清理列表
 temp_files = []
 
-# 文件名映射表：存储内部文件名到原始文件名的映射
-filename_mapping = {}
+def get_filename_mapping_path():
+    """返回文件名映射表路径"""
+    return os.path.join(
+        app.config['UPLOAD_FOLDER'],
+        app.config.get('FILENAME_MAPPING_FILENAME', '.filename-mapping.json')
+    )
+
+
+def _load_filename_mapping():
+    mapping_path = get_filename_mapping_path()
+    if not os.path.exists(mapping_path):
+        return {}
+
+    try:
+        with open(mapping_path, 'r', encoding='utf-8') as file_obj:
+            data = json.load(file_obj)
+        if isinstance(data, dict):
+            return {str(key): str(value) for key, value in data.items()}
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return {}
+    return {}
+
+
+def _save_filename_mapping(mapping):
+    mapping_path = get_filename_mapping_path()
+    os.makedirs(os.path.dirname(mapping_path), exist_ok=True)
+    with open(mapping_path, 'w', encoding='utf-8') as file_obj:
+        json.dump(mapping, file_obj, ensure_ascii=False, indent=2)
+
+
+def _set_filename_mapping(internal_name, original_name):
+    mapping = _load_filename_mapping()
+    mapping[str(internal_name)] = str(original_name)
+    _save_filename_mapping(mapping)
+
+
+def _get_filename_mapping(internal_name):
+    return _load_filename_mapping().get(str(internal_name))
 
 
 def get_keyword_settings_path():
@@ -104,6 +141,16 @@ def _append_execution_log(mode, result, context=None):
     entries.insert(0, entry)
     _save_execution_logs(entries[:100])
     return entry
+
+
+def _get_effective_allowed_root():
+    """返回路径模式实际生效的允许根路径"""
+    allowed_root = os.getenv('MUSIC_CLEANER_ALLOWED_PATH', '').strip()
+    if allowed_root:
+        return os.path.abspath(allowed_root)
+    if _is_running_in_docker():
+        return '/media'
+    return ''
 
 
 def _serialize_keyword_settings():
@@ -180,14 +227,7 @@ def _is_running_in_docker():
 
 def _get_default_path_mode_path():
     """返回路径模式默认路径"""
-    allowed_root = os.getenv('MUSIC_CLEANER_ALLOWED_PATH', '').strip()
-    if allowed_root:
-        return os.path.abspath(allowed_root)
-
-    if _is_running_in_docker():
-        return '/media'
-
-    return ''
+    return _get_effective_allowed_root()
 
 
 def _build_runtime_config():
@@ -322,7 +362,7 @@ def upload_files():
                     file.save(file_path)
                     
                     # 保存文件名映射
-                    filename_mapping[internal_filename] = original_filename
+                    _set_filename_mapping(internal_filename, original_filename)
                     
                     # 提取原始歌词
                     original_lyrics = get_lyrics_from_file(file_path)
@@ -416,7 +456,7 @@ def upload_folder():
                     file.save(file_path)
                     
                     # 保存文件名映射
-                    filename_mapping[internal_relative_path] = original_path
+                    _set_filename_mapping(internal_relative_path, original_path)
                     
                     # 提取原始歌词
                     original_lyrics = get_lyrics_from_file(file_path)
@@ -542,31 +582,20 @@ def process_files():
             
             # 保存清理后的歌词
             if save_lyrics_to_file(processed_path, cleaned_lyrics):
-                # 从映射表获取原始文件名
-                print(f"Debug: 查找文件名映射 - filename: {filename}")
-                print(f"Debug: 映射表键: {list(filename_mapping.keys())}")
-                
-                if filename in filename_mapping:
-                    original_path = filename_mapping[filename]
+                original_path = _get_filename_mapping(filename)
+                if original_path:
                     display_name = os.path.basename(original_path)
-                    print(f"Debug: 从映射表找到 - original_path: {original_path}, display_name: {display_name}")
                 else:
-                    print(f"Debug: 映射表中未找到，尝试解析文件名")
                     # 如果映射表中没有，尝试从文件名解析
                     basename = os.path.basename(filename)
-                    print(f"Debug: basename: {basename}")
                     if '_' in basename and len(basename.split('_')) >= 3:
                         parts = basename.split('_', 2)
-                        print(f"Debug: 分割结果: {parts}")
                         if parts[0].isdigit() and parts[1].isdigit():
                             display_name = parts[2]
-                            print(f"Debug: 解析成功 - display_name: {display_name}")
                         else:
                             display_name = basename
-                            print(f"Debug: 时间戳格式不正确，使用basename: {display_name}")
                     else:
                         display_name = basename
-                        print(f"Debug: 无法解析，使用basename: {display_name}")
                 
                 processed_files.append({
                     'original_filename': filename,
@@ -638,7 +667,7 @@ def process_path():
             return jsonify({'error': f'路径不存在: {abs_target_path}'}), 404
 
         # 可选的路径白名单（用于生产环境安全控制）
-        allowed_root = os.getenv('MUSIC_CLEANER_ALLOWED_PATH', '').strip()
+        allowed_root = _get_effective_allowed_root()
         if allowed_root:
             abs_allowed_root = os.path.abspath(allowed_root)
             try:
@@ -784,7 +813,7 @@ def browse_path():
         data = request.get_json(silent=True) or {}
         requested_path = str(data.get('path', '')).strip().strip('"')
 
-        allowed_root = os.getenv('MUSIC_CLEANER_ALLOWED_PATH', '').strip()
+        allowed_root = _get_effective_allowed_root()
         abs_allowed_root = os.path.abspath(allowed_root) if allowed_root else None
 
         if requested_path:
@@ -914,7 +943,7 @@ def rename_path_file():
         if not os.path.isfile(abs_file_path):
             return jsonify({'error': '文件不存在'}), 404
 
-        allowed_root = os.getenv('MUSIC_CLEANER_ALLOWED_PATH', '').strip()
+        allowed_root = _get_effective_allowed_root()
         if allowed_root:
             abs_allowed_root = os.path.abspath(allowed_root)
             try:
@@ -956,8 +985,8 @@ def download_file(filename):
         internal_filename = filename[8:]  # 移除 'cleaned_' 前缀
         
         # 从映射表中获取原始文件名
-        if internal_filename in filename_mapping:
-            original_path = filename_mapping[internal_filename]
+        original_path = _get_filename_mapping(internal_filename)
+        if original_path:
             download_name = os.path.basename(original_path)
         else:
             # 如果映射表中没有，尝试从文件名解析
@@ -1000,8 +1029,9 @@ def download_all():
                         internal_filename = filename[8:]  # 移除 'cleaned_' 前缀
                         
                         # 从映射表中获取原始文件路径
-                        if internal_filename in filename_mapping:
-                            archive_name = filename_mapping[internal_filename]
+                        original_path = _get_filename_mapping(internal_filename)
+                        if original_path:
+                            archive_name = original_path
                         else:
                             # 如果映射表中没有，尝试从文件名解析
                             path_parts = internal_filename.split(os.sep)
@@ -1114,9 +1144,6 @@ def cleanup_files():
                     os.rmdir(dir_path)
                 except Exception as e:
                     print(f"Failed to remove directory {dir_path}: {e}")
-        
-        # 清理文件名映射
-        filename_mapping.clear()
         
         return jsonify({'message': '清理完成'})
     

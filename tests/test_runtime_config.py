@@ -25,6 +25,17 @@ class RuntimeConfigTest(unittest.TestCase):
         self.assertIn('window.__MUSIC_META_CLEANER_RUNTIME__', html)
         self.assertIn('"defaultPath": "/media"', html)
 
+    def test_process_path_rejects_non_media_path_inside_docker_by_default(self):
+        with patch.dict(os.environ, {'MUSIC_CLEANER_ALLOWED_PATH': ''}, clear=False), \
+             patch.object(app_module, '_is_running_in_docker', return_value=True):
+            client = app_module.app.test_client()
+            with patch.object(app_module.os.path, 'exists', wraps=app_module.os.path.exists):
+                response = client.post('/process_path', json={'path': os.path.abspath('.')})
+
+        self.assertEqual(response.status_code, 403)
+        data = response.get_json()
+        self.assertEqual(data['allowed_root'], '/media')
+
 
 if __name__ == '__main__':
     unittest.main()
