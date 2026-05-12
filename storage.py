@@ -52,6 +52,15 @@ def initialize_storage(app):
             )
             '''
         )
+        conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS keyword_settings (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                keywords_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            '''
+        )
         conn.commit()
 
 
@@ -157,3 +166,30 @@ def get_filename_mapping(app, internal_name):
             (str(internal_name),)
         ).fetchone()
     return row[0] if row else None
+
+
+def load_keyword_settings_record(app):
+    initialize_storage(app)
+    with sqlite3.connect(get_app_db_path(app)) as conn:
+        row = conn.execute(
+            'SELECT keywords_json, updated_at FROM keyword_settings WHERE id = 1'
+        ).fetchone()
+    if not row:
+        return None
+    return {
+        'keywords_json': row[0],
+        'updated_at': row[1]
+    }
+
+
+def save_keyword_settings_record(app, keywords, updated_at):
+    initialize_storage(app)
+    with sqlite3.connect(get_app_db_path(app)) as conn:
+        conn.execute(
+            '''
+            INSERT OR REPLACE INTO keyword_settings (id, keywords_json, updated_at)
+            VALUES (1, ?, ?)
+            ''',
+            (json.dumps(list(keywords), ensure_ascii=False), str(updated_at or ''))
+        )
+        conn.commit()

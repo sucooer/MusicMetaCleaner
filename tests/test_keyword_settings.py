@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import tempfile
 import unittest
 
@@ -70,12 +71,21 @@ class KeywordSettingsApiTest(unittest.TestCase):
         response = self.client.post('/cleanup')
         self.assertEqual(response.status_code, 200)
 
-        settings_path = os.path.join(
-            self.upload_dir,
-            app_module.app.config['KEYWORD_SETTINGS_FILENAME']
-        )
-        self.assertTrue(os.path.exists(settings_path))
+        db_path = app_module.get_app_db_path()
+        self.assertTrue(os.path.exists(db_path))
         self.assertFalse(os.path.exists(uploaded_file))
+
+    def test_keyword_settings_are_persisted_in_database(self):
+        response = self.client.post('/settings/lyrics_keywords', json={'keywords': ['数据库字段']})
+        self.assertEqual(response.status_code, 200)
+
+        with sqlite3.connect(app_module.get_app_db_path()) as conn:
+            row = conn.execute(
+                "SELECT keywords_json FROM keyword_settings WHERE id = 1"
+            ).fetchone()
+
+        self.assertIsNotNone(row)
+        self.assertIn('数据库字段', row[0])
 
 
 if __name__ == '__main__':

@@ -22,6 +22,8 @@ from storage import get_execution_log_path as _storage_get_execution_log_path
 from storage import get_filename_mapping_path as _storage_get_filename_mapping_path
 from storage import get_keyword_settings_path as _storage_get_keyword_settings_path
 from storage import initialize_storage as _initialize_storage
+from storage import load_keyword_settings_record as _load_keyword_settings_record
+from storage import save_keyword_settings_record as _save_keyword_settings_record
 
 app = Flask(__name__)
 app.jinja_env.variable_start_string = '(('
@@ -54,8 +56,12 @@ def get_app_db_path():
 def configure_keyword_settings_storage():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
-    lyrics_processor.configure_settings_path(get_keyword_settings_path())
     _initialize_storage(app)
+    lyrics_processor.configure_settings_path(
+        get_keyword_settings_path(),
+        record_loader=lambda: _load_keyword_settings_record(app),
+        record_saver=lambda keywords, updated_at: _save_keyword_settings_record(app, keywords, updated_at)
+    )
 
 
 def _is_running_in_docker():

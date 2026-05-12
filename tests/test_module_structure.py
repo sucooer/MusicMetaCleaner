@@ -20,9 +20,15 @@ class ModuleStructureTest(unittest.TestCase):
     def test_routes_and_frontend_aggregators_are_reduced(self):
         with open('routes.py', 'r', encoding='utf-8') as file_obj:
             routes_lines = sum(1 for _ in file_obj)
+        with open('route_modules/upload_routes.py', 'r', encoding='utf-8') as file_obj:
+            upload_routes_lines = sum(1 for _ in file_obj)
+        with open('route_modules/path_routes.py', 'r', encoding='utf-8') as file_obj:
+            path_routes_lines = sum(1 for _ in file_obj)
         with open('static/js/methods.js', 'r', encoding='utf-8') as file_obj:
             methods_lines = sum(1 for _ in file_obj)
         self.assertLess(routes_lines, 220)
+        self.assertLess(upload_routes_lines, 220)
+        self.assertLess(path_routes_lines, 220)
         self.assertLess(methods_lines, 180)
 
     def test_storage_uses_database_entrypoint(self):

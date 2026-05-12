@@ -63,6 +63,8 @@ class LyricsProcessor:
         self.ai_cache = {}
         self.settings_path = None
         self.last_saved_at = ''
+        self.keyword_record_loader = None
+        self.keyword_record_saver = None
         self._apply_header_keywords(self.default_header_keywords)
 
     def _normalize_keywords(self, keywords):
@@ -89,12 +91,28 @@ class LyricsProcessor:
     def get_header_keywords(self):
         return list(self.header_keywords)
 
-    def configure_settings_path(self, settings_path=None):
+    def configure_settings_path(self, settings_path=None, record_loader=None, record_saver=None):
         self.settings_path = settings_path
+        self.keyword_record_loader = record_loader
+        self.keyword_record_saver = record_saver
         self.load_header_keywords()
 
     def load_header_keywords(self):
         self.last_saved_at = ''
+        if callable(self.keyword_record_loader):
+            try:
+                record = self.keyword_record_loader()
+            except Exception:
+                record = None
+            if isinstance(record, dict):
+                try:
+                    keywords = json.loads(record.get('keywords_json', '[]'))
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    keywords = self.default_header_keywords
+                self.last_saved_at = str(record.get('updated_at', '') or '')
+                self._apply_header_keywords(keywords)
+                return self.get_header_keywords()
+
         if not self.settings_path or not os.path.exists(self.settings_path):
             self._apply_header_keywords(self.default_header_keywords)
             return self.get_header_keywords()
@@ -112,6 +130,12 @@ class LyricsProcessor:
 
     def save_header_keywords(self, keywords, updated_at=''):
         normalized = self._normalize_keywords(keywords)
+        if callable(self.keyword_record_saver):
+            self.keyword_record_saver(normalized, str(updated_at or ''))
+            self.last_saved_at = str(updated_at or '')
+            self._apply_header_keywords(normalized)
+            return self.get_header_keywords()
+
         if not self.settings_path:
             raise ValueError('未配置关键词设置文件路径')
 
