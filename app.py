@@ -106,9 +106,46 @@ def request_entity_too_large(error):
         'error': '上传文件过大，请检查服务器配置或减少文件数量'
     }), 413
 
+
+def _is_running_in_docker():
+    """判断当前服务是否运行在 Docker / 容器环境中"""
+    if os.path.exists('/.dockerenv') or os.path.exists('/run/.containerenv'):
+        return True
+
+    cgroup_path = '/proc/1/cgroup'
+    try:
+        with open(cgroup_path, 'r', encoding='utf-8') as file_obj:
+            cgroup_text = file_obj.read()
+        return any(token in cgroup_text for token in ('docker', 'containerd', 'kubepods'))
+    except OSError:
+        return False
+
+
+def _get_default_path_mode_path():
+    """返回路径模式默认路径"""
+    allowed_root = os.getenv('MUSIC_CLEANER_ALLOWED_PATH', '').strip()
+    if allowed_root:
+        return os.path.abspath(allowed_root)
+
+    if _is_running_in_docker():
+        return '/media'
+
+    return ''
+
+
+def _build_runtime_config():
+    """构建前端初始化所需的运行时配置"""
+    default_path = _get_default_path_mode_path()
+    return {
+        'in_docker': _is_running_in_docker(),
+        'default_path': default_path,
+        'defaultPath': default_path
+    }
+
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', runtime_config=_build_runtime_config())
 
 
 def _extract_ai_config(data):

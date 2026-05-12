@@ -177,108 +177,72 @@
 
         .dashboard {
             display: grid;
-            grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 12px;
-            align-items: stretch;
+            align-items: start;
         }
 
-        .flow {
-            display: grid;
-            gap: 12px;
-            min-width: 0;
+        .workspace-shell {
             align-content: start;
         }
 
-        .side {
-            display: grid;
-            gap: 12px;
-            min-width: 0;
-            align-content: start;
-        }
-
-        .dashboard.mode-path .flow,
-        .dashboard.mode-path .side {
-            height: 100%;
-        }
-
-        .dashboard.mode-path .panel {
-            height: 100%;
-        }
-
-        .dashboard.mode-path {
-            grid-template-columns: 1fr;
-        }
-
-        .dashboard.mode-path .flow,
-        .dashboard.mode-path .side {
-            width: 100%;
-            height: auto;
-        }
-
-        .dashboard.mode-path .side {
-            grid-template-columns: 1fr;
-        }
-
-        .dashboard.mode-path .panel-body {
-            overflow: visible;
+        .settings-panel {
+            grid-column: 1 / -1;
         }
 
         .dashboard.mode-upload {
-            grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-            grid-template-rows: auto auto minmax(0, 1fr);
-            align-items: stretch;
+            grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr);
         }
 
-        .dashboard.mode-upload .flow,
-        .dashboard.mode-upload .side {
-            display: contents;
+        .dashboard.mode-upload .settings-grid {
+            grid-template-columns: minmax(0, 1.45fr) minmax(340px, 1fr);
         }
 
-        .dashboard.mode-upload .settings-panel {
-            grid-column: 1;
-            grid-row: 1;
-            height: auto;
-        }
-
-        .dashboard.mode-upload .upload-panel {
+        .dashboard.mode-upload .upload-control-panel {
             grid-column: 1;
             grid-row: 2;
-            height: auto;
         }
 
         .dashboard.mode-upload .result-download-panel {
+            grid-column: 2;
+            grid-row: 2;
+            min-height: clamp(300px, 34vh, 460px);
+        }
+
+        .dashboard.mode-upload .file-list-panel {
             grid-column: 1;
             grid-row: 3;
-            height: auto;
-            min-height: clamp(280px, 34vh, 440px);
+            min-height: clamp(380px, 50vh, 620px);
         }
 
-        .dashboard.mode-upload .list-preview-panel {
+        .dashboard.mode-upload .preview-panel {
             grid-column: 2;
-            grid-row: 1 / span 3;
-            height: auto;
-            min-height: clamp(410px, 52vh, 600px);
+            grid-row: 3;
+            min-height: clamp(380px, 50vh, 620px);
         }
 
-        .dashboard.mode-upload .panel {
+        .dashboard.mode-path .path-control-panel {
+            grid-column: 1 / -1;
+            grid-row: 2;
+        }
+
+        .dashboard.mode-upload .panel,
+        .dashboard.mode-path .panel {
             height: auto;
         }
 
-        .dashboard.mode-upload .panel-body {
+        .dashboard.mode-upload .panel-body,
+        .dashboard.mode-path .panel-body {
             overflow: auto;
         }
 
-        .dashboard.mode-upload .upload-panel .panel-body {
+        .dashboard.mode-upload .upload-control-panel,
+        .dashboard.mode-path .path-control-panel,
+        .settings-panel,
+        .dashboard.mode-upload .upload-control-panel .panel-body,
+        .dashboard.mode-path .path-control-panel .panel-body,
+        .settings-panel .panel-body {
             overflow: visible;
-            padding: 14px;
-        }
-
-        .dashboard.mode-upload .upload-panel {
-            overflow: visible;
-        }
-
-        .span-2 {
-            grid-column: 1 / -1;
         }
 
         .panel {
@@ -403,7 +367,7 @@
         .file-name {
             font-size: 0.84rem;
             font-weight: 600;
-            max-width: 240px;
+            min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -659,6 +623,40 @@
             overflow: visible;
         }
 
+        .settings-toggle-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.52);
+        }
+
+        .settings-toggle-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .settings-summary-mini {
+            display: inline-flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 0.75rem;
+            color: var(--subtext);
+        }
+
+        .settings-summary-mini strong {
+            color: var(--text);
+            margin-left: 4px;
+            font-size: 0.78rem;
+        }
+
         .settings-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -718,6 +716,13 @@
             line-height: 1.2;
         }
 
+        .keyword-chip-label {
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .keyword-chip:hover {
             border-color: rgba(56, 189, 248, 0.6);
             background: rgba(37, 99, 235, 0.24);
@@ -725,6 +730,149 @@
 
         .keyword-chip i {
             font-size: 0.7rem;
+        }
+
+        .keyword-remove-btn {
+            border: 0;
+            background: transparent;
+            color: #bfdbfe;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .keyword-remove-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+
+        .workspace-shell {
+            display: grid;
+            gap: 12px;
+        }
+
+        .workspace-stack {
+            display: grid;
+            gap: 12px;
+        }
+
+        .upload-action-bar,
+        .path-action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .upload-action-main,
+        .path-action-main {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .workspace-hint {
+            color: var(--subtext);
+            font-size: 0.74rem;
+        }
+
+        .result-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .result-summary-card {
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.42);
+            padding: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            backdrop-filter: blur(8px);
+        }
+
+        .result-summary-card .label {
+            font-size: 0.72rem;
+            color: var(--subtext);
+        }
+
+        .result-summary-card .value {
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin-top: 2px;
+        }
+
+        .result-summary-card.primary .value {
+            color: #93c5fd;
+        }
+
+        .result-summary-card.ok .value {
+            color: var(--ok);
+        }
+
+        .result-summary-card.warn .value {
+            color: var(--warn);
+        }
+
+        .result-summary-card.danger .value {
+            color: var(--danger);
+        }
+
+        .result-toggle-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-item {
+            align-items: flex-start;
+        }
+
+        .file-item-main {
+            flex: 1 1 auto;
+            min-width: 0;
+            display: grid;
+            gap: 6px;
+        }
+
+        .file-item-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: flex-start;
+        }
+
+        .file-item-bottom {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .result-download-panel .panel-body,
+        .file-list-panel .panel-body,
+        .preview-panel .panel-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .path-picker-list {
@@ -843,28 +991,59 @@
 
             .dashboard.mode-upload {
                 grid-template-columns: 1fr;
-                grid-template-rows: auto;
-            }
-
-            .dashboard.mode-upload .flow,
-            .dashboard.mode-upload .side {
-                display: grid;
             }
 
             .dashboard.mode-upload .settings-panel,
-            .dashboard.mode-upload .upload-panel,
-            .dashboard.mode-upload .result-download-panel,
-            .dashboard.mode-upload .list-preview-panel {
-                grid-column: auto;
-                grid-row: auto;
-                height: auto;
+            .dashboard.mode-upload .upload-control-panel,
+            .dashboard.mode-upload .file-list-panel,
+            .dashboard.mode-upload .preview-panel,
+            .dashboard.mode-upload .result-download-panel {
+                grid-column: 1;
+            }
+
+            .dashboard.mode-upload .settings-panel {
+                grid-row: 1;
+            }
+
+            .dashboard.mode-upload .upload-control-panel {
+                grid-row: 2;
+            }
+
+            .dashboard.mode-upload .file-list-panel {
+                grid-row: 3;
+                min-height: auto;
+            }
+
+            .dashboard.mode-upload .preview-panel {
+                grid-row: 4;
+                min-height: auto;
+            }
+
+            .dashboard.mode-upload .result-download-panel {
+                grid-row: 5;
+                min-height: auto;
             }
         }
 
         @media (max-width: 900px) {
             .settings-grid,
+            .dashboard.mode-upload .settings-grid,
             .upload-workspace {
                 grid-template-columns: 1fr;
+            }
+
+            .result-summary-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .upload-action-bar,
+            .upload-action-main {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .upload-action-main .btn {
+                width: 100%;
             }
 
             .preview-grid {
@@ -873,6 +1052,45 @@
 
             .metric-row {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 767px) {
+            .top-stats,
+            .settings-toggle-bar,
+            .file-item-top,
+            .file-item-bottom,
+            .result-toggle-head {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .mode-switch {
+                width: 100%;
+            }
+
+            .mode-switch .btn {
+                flex: 1 1 0;
+            }
+
+            .top-mode-summary {
+                display: none;
+            }
+
+            .settings-toggle-bar {
+                padding: 8px 10px;
+            }
+
+            .settings-summary-mini {
+                gap: 8px;
+            }
+
+            .panel-head {
+                align-items: flex-start;
+            }
+
+            .result-summary-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -888,6 +1106,7 @@
         </div>
 
         <div class="top-stats">
+            <div class="top-mode-summary">
             <template v-if="uiMode === 'upload'">
                 <span class="chip">总文件<strong>[[ uploadedFiles.length ]]</strong></span>
                 <span class="chip">含歌词<strong>[[ filesWithLyrics.length ]]</strong></span>
@@ -898,6 +1117,7 @@
                 <span class="chip">执行状态<strong>[[ pathResult ? '已执行' : '未执行' ]]</strong></span>
                 <span class="chip">目标路径<strong>[[ pathForm.path ? '已选择' : '未选择' ]]</strong></span>
             </template>
+            </div>
             <div class="mode-switch">
                 <button class="btn btn-sm compact-btn" :class="uiMode === 'upload' ? 'btn-primary' : 'btn-outline-primary'" @click="uiMode = 'upload'">上传模式</button>
                 <button class="btn btn-sm compact-btn" :class="uiMode === 'path' ? 'btn-primary' : 'btn-outline-primary'" @click="uiMode = 'path'">路径模式</button>
@@ -916,15 +1136,27 @@
         </div>
     </header>
 
-    <main class="dashboard" :class="'mode-' + uiMode">
-        <div class="flow" v-if="uiMode === 'path'">
+    <main class="dashboard workspace-shell" :class="'mode-' + uiMode">
         <section class="panel settings-panel">
             <div class="panel-head">
                 <h3><i class="bi bi-sliders"></i>清理设置</h3>
-                <span class="muted">关键词保存在服务器，AI 配置保存在当前浏览器</span>
+                <button class="btn btn-outline-secondary compact-btn" @click="settingsExpanded = !settingsExpanded">
+                    [[ settingsExpanded ? '收起设置' : '展开设置' ]]
+                </button>
             </div>
             <div class="panel-body">
-                <div class="settings-grid">
+                <div class="settings-toggle-bar">
+                    <div class="settings-toggle-meta">
+                        <div class="settings-summary-mini">
+                            <span>关键词<strong>[[ keywordSettings.keywords.length ]]</strong></span>
+                            <span>AI<strong>[[ aiEnabled ? '启用' : '关闭' ]]</strong></span>
+                            <span>服务器<strong>[[ keywordSettings.savedAt ? '已保存' : '未保存' ]]</strong></span>
+                            <span>浏览器<strong>[[ aiConfigSavedAt ? '已保存' : '未保存' ]]</strong></span>
+                        </div>
+                    </div>
+                    <div class="workspace-hint">需要时再展开编辑</div>
+                </div>
+                <div v-show="settingsExpanded" class="settings-grid">
                     <div class="settings-card">
                         <div class="settings-card-head">
                             <div>
@@ -944,15 +1176,12 @@
                             </button>
                         </div>
                         <div class="keyword-list mt-2" v-if="keywordSettings.keywords.length">
-                            <button
-                                type="button"
-                                class="keyword-chip"
-                                v-for="keyword in keywordSettings.keywords"
-                                :key="keyword"
-                                @click="removeKeyword(keyword)">
-                                <span>[[ keyword ]]</span>
-                                <i class="bi bi-x-lg"></i>
-                            </button>
+                            <div class="keyword-chip" v-for="keyword in keywordSettings.keywords" :key="keyword">
+                                <span class="keyword-chip-label">[[ keyword ]]</span>
+                                <button type="button" class="keyword-remove-btn" :aria-label="'移除关键词 ' + keyword" @click="removeKeyword(keyword)">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="empty py-3 mt-2" v-else>
                             <i class="bi bi-tags"></i> 当前没有自定义关键词，保存空列表后仅保留固定规则和 AI 识别
@@ -995,222 +1224,93 @@
                 </div>
             </div>
         </section>
-        <section class="panel upload-panel">
-            <div class="panel-head">
-                <h3><i class="bi bi-terminal"></i>路径模式</h3>
-                <span class="muted">仅服务器路径处理</span>
-            </div>
-            <div class="panel-body">
-                <div class="advanced-body">
-                    <div class="mb-2">
-                        <label class="form-label" for="serverPath">目标路径</label>
-                        <input id="serverPath" class="form-control" v-model.trim="pathForm.path" placeholder="例如 /music 或 /app/uploads">
+
+        <template v-if="uiMode === 'upload'">
+            <section class="panel upload-control-panel">
+                <div class="panel-head">
+                    <h3><i class="bi bi-cloud-upload"></i>上传控制</h3>
+                    <button class="btn btn-outline-secondary compact-btn" @click="clearUploads">清空上传</button>
+                </div>
+                <div class="panel-body">
+                    <div class="upload-action-bar">
+                        <div class="upload-action-main">
+                            <button class="btn btn-primary compact-btn" @click="chooseFiles">
+                                <i class="bi bi-file-earmark-music me-1"></i>选择文件
+                            </button>
+                            <button class="btn btn-outline-primary compact-btn" @click="chooseFolder">
+                                <i class="bi bi-folder2-open me-1"></i>选择文件夹
+                            </button>
+                            <button class="btn btn-success compact-btn" :disabled="filesWithLyrics.length === 0" @click="previewFirstWithLyrics">
+                                <i class="bi bi-eye me-1"></i>预览首个可处理文件
+                            </button>
+                            <button class="btn btn-warning compact-btn text-white" :disabled="filesWithLyrics.length === 0 || processingFiles" @click="processFiles">
+                                <i class="bi bi-gear me-1"></i>处理全部可处理文件
+                            </button>
+                        </div>
+                        <div class="workspace-hint">先上传，再在下方查看列表、预览和结果</div>
                     </div>
-                    <div class="inline-actions mb-2">
-                        <button class="btn btn-outline-primary compact-btn" @click="openPathPicker">
-                            <i class="bi bi-folder2-open me-1"></i>浏览服务器目录
-                        </button>
+                    <div class="upload-drop" :class="{ active: dragOver }"
+                         @dragenter.prevent="dragOver = true"
+                         @dragover.prevent="dragOver = true"
+                         @dragleave.prevent="dragOver = false"
+                         @drop.prevent="onDrop">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                        <div class="fw-bold" style="font-size:0.83rem;">拖拽音频文件到这里</div>
+                        <div class="muted">支持 MP3 / FLAC / M4A</div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label" for="extFilter">扩展名过滤（可选）</label>
-                        <input id="extFilter" class="form-control" v-model.trim="pathForm.filterExt" placeholder=".mp3,.flac,.m4a">
-                    </div>
-                    <div class="d-flex justify-content-between flex-wrap">
-                        <label class="form-check">
-                            <input type="checkbox" class="form-check-input" v-model="pathForm.dryRun">
-                            <span class="form-check-label">预览模式</span>
-                        </label>
-                        <label class="form-check">
-                            <input type="checkbox" class="form-check-input" v-model="pathForm.backup">
-                            <span class="form-check-label">备份原文件</span>
-                        </label>
-                    </div>
-                    <div class="muted mt-2">清理关键词与 AI 配置请在上方“清理设置”中统一维护。</div>
-                    <div class="inline-actions mt-1">
-                        <button class="btn btn-primary compact-btn" :disabled="pathProcessing" @click="processPath">
-                            <i class="bi bi-play-circle me-1"></i>[[ pathProcessing ? '处理中...' : '执行路径模式' ]]
-                        </button>
+                    <input ref="fileInput" type="file" multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFilesSelected">
+                    <input ref="folderInput" type="file" webkitdirectory directory multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFolderSelected">
+                    <div class="muted" v-if="uploadFolderStats">
+                        文件夹上传：总 [[ uploadFolderStats.total_files ]]，含歌词 [[ uploadFolderStats.files_with_lyrics ]]
                     </div>
                 </div>
-            </div>
-        </section>
-        </div>
-        <div class="flow" v-else>
-        <section class="panel settings-panel">
-            <div class="panel-head">
-                <h3><i class="bi bi-sliders"></i>清理设置</h3>
-                <span class="muted">关键词保存在服务器，AI 配置保存在当前浏览器</span>
-            </div>
-            <div class="panel-body">
-                <div class="settings-grid">
-                    <div class="settings-card">
-                        <div class="settings-card-head">
-                            <div>
-                                <div class="settings-title">关键词规则</div>
-                                <div class="muted">支持逗号或换行一次添加多个关键词，保存后立即参与歌词清理。</div>
+            </section>
+
+            <section class="panel result-download-panel">
+                <div class="panel-head">
+                    <h3><i class="bi bi-check-circle"></i>处理结果与下载</h3>
+                    <span class="muted" v-if="processResult">最近一次批处理统计</span>
+                </div>
+                <div class="panel-body">
+                    <div v-if="!processResult" class="empty">
+                        <i class="bi bi-graph-up"></i>
+                        点击“处理全部可处理文件”后，这里显示成功/失败/忽略统计
+                    </div>
+                    <div v-else class="workspace-stack">
+                        <div class="result-summary-card primary">
+                            <div class="result-toggle-head">
+                                <div>
+                                    <div class="settings-title">批处理摘要</div>
+                                    <div class="workspace-hint">最近一次处理结果</div>
+                                </div>
+                                <span class="mini-badge ok">[[ processResult.success_count + processResult.failed_count + processResult.ignored_count ]] 项</span>
                             </div>
-                            <span class="mini-badge ok">[[ keywordSettings.keywords.length ]] 项</span>
-                        </div>
-                        <div class="inline-input">
-                            <input
-                                class="form-control"
-                                v-model.trim="keywordSettings.draft"
-                                @keydown.enter.prevent="appendKeywordDraft"
-                                placeholder="例如：作词，作曲，编曲">
-                            <button class="btn btn-outline-primary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="appendKeywordDraft">
-                                <i class="bi bi-plus-circle me-1"></i>添加
-                            </button>
-                        </div>
-                        <div class="keyword-list mt-2" v-if="keywordSettings.keywords.length">
-                            <button
-                                type="button"
-                                class="keyword-chip"
-                                v-for="keyword in keywordSettings.keywords"
-                                :key="keyword"
-                                @click="removeKeyword(keyword)">
-                                <span>[[ keyword ]]</span>
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        </div>
-                        <div class="empty py-3 mt-2" v-else>
-                            <i class="bi bi-tags"></i> 当前没有自定义关键词，保存空列表后仅保留固定规则和 AI 识别
-                        </div>
-                        <div class="inline-actions mt-2">
-                            <button class="btn btn-primary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="saveKeywordSettings">
-                                [[ keywordSettings.saving ? '保存中...' : '保存关键词' ]]
-                            </button>
-                            <button class="btn btn-outline-secondary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="restoreDefaultKeywords">
-                                恢复默认并保存
-                            </button>
-                            <button class="btn btn-outline-secondary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="loadKeywordSettings(true)">
-                                刷新
-                            </button>
-                        </div>
-                        <div class="muted mt-1">[[ keywordSettings.savedAt ? ('服务器已保存：' + keywordSettings.savedAt) : '当前使用默认关键词，尚未保存自定义规则' ]]</div>
-                    </div>
-                    <div class="settings-card">
-                        <div class="settings-card-head">
-                            <div>
-                                <div class="settings-title">AI 辅助识别</div>
-                                <div class="muted">仅使用你自定义的 AI 提供商配置；未填写时自动退回本地规则。</div>
+                            <div class="metric-row mt-2">
+                                <div class="metric">
+                                    <div class="label">总任务</div>
+                                    <div class="value">[[ processResult.success_count + processResult.failed_count + processResult.ignored_count ]]</div>
+                                </div>
+                                <div class="metric ok">
+                                    <div class="label">成功</div>
+                                    <div class="value">[[ processResult.success_count ]]</div>
+                                </div>
+                                <div class="metric danger">
+                                    <div class="label">失败</div>
+                                    <div class="value">[[ processResult.failed_count ]]</div>
+                                </div>
+                                <div class="metric warn">
+                                    <div class="label">忽略</div>
+                                    <div class="value">[[ processResult.ignored_count ]]</div>
+                                </div>
                             </div>
-                            <span class="mini-badge" :class="aiEnabled ? 'ok' : 'no'">[[ aiEnabled ? '已启用' : '已关闭' ]]</span>
-                        </div>
-                        <label class="form-check">
-                            <input type="checkbox" class="form-check-input" v-model="aiEnabled">
-                            <span class="form-check-label">启用 AI 识别元信息行</span>
-                        </label>
-                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.baseUrl" placeholder="AI Base URL，例如 https://api.openai.com/v1">
-                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.model" placeholder="AI Model，例如 gpt-4o-mini">
-                        <input type="password" class="form-control form-control-sm mt-1" v-model.trim="aiConfig.apiKey" placeholder="AI API Key">
-                        <input class="form-control form-control-sm mt-1" v-model.trim="aiConfig.timeout" placeholder="超时秒数（默认 6）">
-                        <div class="inline-actions mt-2">
-                            <button class="btn btn-outline-success compact-btn" @click="saveAiConfigToStorage">保存 AI 配置</button>
-                            <button class="btn btn-outline-secondary compact-btn" @click="clearAiConfigStorage">清空 AI 配置</button>
-                        </div>
-                        <div class="muted mt-1">[[ aiConfigSavedAt ? ('已保存：' + aiConfigSavedAt) : '尚未保存到浏览器' ]]</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        <section class="panel upload-panel">
-            <div class="panel-head">
-                <h3><i class="bi bi-cloud-upload"></i>上传</h3>
-                <button class="btn btn-outline-secondary compact-btn" @click="clearUploads">清空上传</button>
-            </div>
-            <div class="panel-body">
-                <div class="upload-drop" :class="{ active: dragOver }"
-                     @dragenter.prevent="dragOver = true"
-                     @dragover.prevent="dragOver = true"
-                     @dragleave.prevent="dragOver = false"
-                     @drop.prevent="onDrop">
-                    <i class="bi bi-cloud-arrow-up"></i>
-                    <div class="fw-bold" style="font-size:0.83rem;">拖拽音频文件到这里</div>
-                    <div class="muted">支持 MP3 / FLAC / M4A</div>
-                </div>
-                <div class="upload-actions mb-2">
-                    <button class="btn btn-primary compact-btn" @click="chooseFiles">
-                        <i class="bi bi-file-earmark-music me-1"></i>选择文件
-                    </button>
-                    <button class="btn btn-outline-primary compact-btn" @click="chooseFolder">
-                        <i class="bi bi-folder2-open me-1"></i>选择文件夹
-                    </button>
-                    <button class="btn btn-success compact-btn" :disabled="filesWithLyrics.length === 0" @click="previewFirstWithLyrics">
-                        <i class="bi bi-eye me-1"></i>预览首个可处理文件
-                    </button>
-                    <button class="btn btn-warning compact-btn text-white" :disabled="filesWithLyrics.length === 0 || processingFiles" @click="processFiles">
-                        <i class="bi bi-gear me-1"></i>处理全部可处理文件
-                    </button>
-                </div>
-                <div class="muted mb-2">清理关键词与 AI 配置请在上方“清理设置”中统一维护。</div>
-                <input ref="fileInput" type="file" multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFilesSelected">
-                <input ref="folderInput" type="file" webkitdirectory directory multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFolderSelected">
-                <div class="muted" v-if="uploadFolderStats">
-                    文件夹上传：总 [[ uploadFolderStats.total_files ]]，含歌词 [[ uploadFolderStats.files_with_lyrics ]]
-                </div>
-            </div>
-        </section>
-        <section class="panel result-download-panel">
-            <div class="panel-head">
-                <h3><i class="bi bi-check-circle"></i>处理结果与下载</h3>
-                <span class="muted" v-if="processResult">最近一次批处理统计</span>
-            </div>
-            <div class="panel-body">
-                <div v-if="!processResult" class="empty">
-                    <i class="bi bi-graph-up"></i>
-                    点击“处理全部可处理文件”后，这里显示成功/失败/忽略统计
-                </div>
-                <div v-else>
-                    <div class="metric-row">
-                        <div class="metric">
-                            <div class="label">总任务</div>
-                            <div class="value">[[ processResult.success_count + processResult.failed_count + processResult.ignored_count ]]</div>
-                        </div>
-                        <div class="metric ok">
-                            <div class="label">成功</div>
-                            <div class="value">[[ processResult.success_count ]]</div>
-                        </div>
-                        <div class="metric danger">
-                            <div class="label">失败</div>
-                            <div class="value">[[ processResult.failed_count ]]</div>
-                        </div>
-                        <div class="metric warn">
-                            <div class="label">忽略</div>
-                            <div class="value">[[ processResult.ignored_count ]]</div>
-                        </div>
-                    </div>
-
-                    <div class="result-block" v-if="processResult.failed_files && processResult.failed_files.length">
-                        <h4><i class="bi bi-exclamation-triangle-fill text-warning"></i>失败文件</h4>
-                        <button class="btn btn-outline-warning compact-btn mb-2" @click="exportFailedFiles(processResult.failed_files)">
-                            <i class="bi bi-download me-1"></i>导出失败列表
-                        </button>
-                        <ul>
-                            <li v-for="item in processResult.failed_files" :key="item.filename + item.error">
-                                [[ item.filename ]]: [[ item.error ]]
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="result-block" v-if="processResult.ignored_files && processResult.ignored_files.length">
-                        <h4><i class="bi bi-info-circle-fill text-info"></i>忽略文件</h4>
-                        <ul>
-                            <li v-for="item in processResult.ignored_files" :key="item.filename + item.reason">
-                                [[ item.filename ]]: [[ item.reason ]]
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="result-block mt-2">
-                        <h4><i class="bi bi-download"></i>下载</h4>
-                        <div v-if="processedFiles.length === 0" class="empty">
-                            <i class="bi bi-cloud-arrow-down"></i> 处理成功的文件会出现在这里
-                        </div>
-                        <div v-else>
-                            <div class="download-actions">
+                            <div class="download-actions mt-2" v-if="processedFiles.length">
                                 <button class="btn btn-primary compact-btn" @click="downloadAll"><i class="bi bi-file-zip me-1"></i>下载全部 ZIP</button>
                                 <button class="btn btn-outline-secondary compact-btn" @click="cleanup"><i class="bi bi-trash me-1"></i>清理临时文件</button>
                             </div>
+                        </div>
+
+                        <div class="result-block" v-if="processedFiles.length">
+                            <h4><i class="bi bi-download"></i>已处理文件</h4>
                             <div class="simple-list">
                                 <div class="simple-item" v-for="file in processedFiles" :key="file.processed_filename">
                                     <div class="flex-grow-1 min-w-0">
@@ -1222,134 +1322,232 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="result-block" v-if="processResult.failed_files && processResult.failed_files.length">
+                            <div class="result-toggle-head">
+                                <h4><i class="bi bi-exclamation-triangle-fill text-warning"></i>失败文件</h4>
+                                <button class="btn btn-outline-warning compact-btn" @click="uploadFailedExpanded = !uploadFailedExpanded">
+                                    [[ uploadFailedExpanded ? '收起' : '展开' ]]
+                                </button>
+                            </div>
+                            <div v-show="uploadFailedExpanded">
+                                <button class="btn btn-outline-warning compact-btn mb-2" @click="exportFailedFiles(processResult.failed_files)">
+                                    <i class="bi bi-download me-1"></i>导出失败列表
+                                </button>
+                                <ul>
+                                    <li v-for="item in processResult.failed_files" :key="item.filename + item.error">
+                                        [[ item.filename ]]: [[ item.error ]]
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="result-block" v-if="processResult.ignored_files && processResult.ignored_files.length">
+                            <div class="result-toggle-head">
+                                <h4><i class="bi bi-info-circle-fill text-info"></i>忽略文件</h4>
+                                <button class="btn btn-outline-info compact-btn" @click="uploadIgnoredExpanded = !uploadIgnoredExpanded">
+                                    [[ uploadIgnoredExpanded ? '收起' : '展开' ]]
+                                </button>
+                            </div>
+                            <div v-show="uploadIgnoredExpanded">
+                                <ul>
+                                    <li v-for="item in processResult.ignored_files" :key="item.filename + item.reason">
+                                        [[ item.filename ]]: [[ item.reason ]]
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
-        </div>
+            </section>
 
-        <div class="side">
-        <section class="panel list-preview-panel" v-if="uiMode === 'upload'">
-            <div class="panel-head">
-                <h3><i class="bi bi-layout-split"></i>文件列表与预览</h3>
-                <span class="mini-badge ok">[[ filesWithLyrics.length ]] 可处理</span>
-            </div>
-            <div class="panel-body">
-                <div class="upload-workspace">
-                    <div class="workspace-col">
-                        <div class="muted">文件列表</div>
-                        <div class="workspace-scroll">
-                            <div v-if="uploadedFiles.length === 0" class="empty">
-                                <i class="bi bi-inbox"></i> 上传后会在这里显示文件状态和预览按钮
-                            </div>
-                            <div v-else class="file-list">
-                                <div class="file-item" v-for="(file, index) in uploadedFiles" :key="file.filename">
-                                    <div class="flex-grow-1 min-w-0">
-                                        <div class="file-name">[[ basename(file.original_name) ]]</div>
-                                        <div class="file-meta">[[ file.folder || '根目录' ]]</div>
-                                    </div>
+            <section class="panel file-list-panel">
+                <div class="panel-head">
+                    <h3><i class="bi bi-layout-split"></i>文件列表</h3>
+                    <span class="mini-badge ok">[[ filesWithLyrics.length ]] 可处理</span>
+                </div>
+                <div class="panel-body">
+                    <div class="file-list">
+                        <div v-if="uploadedFiles.length === 0" class="empty">
+                            <i class="bi bi-inbox"></i> 上传后会在这里显示文件状态和预览按钮
+                        </div>
+                        <div v-else class="file-item" v-for="(file, index) in uploadedFiles" :key="file.filename">
+                            <div class="file-item-main">
+                                <div class="file-item-top">
+                                    <div class="file-name">[[ basename(file.original_name) ]]</div>
                                     <span class="mini-badge" :class="file.has_lyrics ? 'ok' : 'no'">[[ file.has_lyrics ? '有歌词' : '无歌词' ]]</span>
-                                    <button class="btn btn-outline-primary compact-btn" :disabled="!file.has_lyrics" @click="previewFile(index)">预览</button>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="workspace-col">
-                        <div class="muted">预览 <span v-if="previewFilename">- [[ basename(previewFilename) ]]</span></div>
-                        <div class="workspace-scroll">
-                            <div v-if="!previewData" class="empty"><i class="bi bi-columns-gap"></i> 请选择一个含歌词文件进行对比预览</div>
-                            <div v-else>
-                                <div class="preview-grid">
-                                    <div class="preview-box"><h4>原始歌词</h4><pre class="lyrics">[[ previewData.original_lyrics ]]</pre></div>
-                                    <div class="preview-box"><h4>清理后歌词</h4><pre class="lyrics">[[ previewData.cleaned_lyrics ]]</pre></div>
-                                </div>
-                                <div class="removed-box" v-if="previewData.removed_lines && previewData.removed_lines.length">
-                                    <h5>已移除 [[ previewData.removed_count ]] 行</h5>
-                                    <pre class="removed-list">[[ previewData.removed_lines.join('\n') ]]</pre>
+                                <div class="file-item-bottom">
+                                    <div class="file-meta">[[ file.folder || '根目录' ]]</div>
+                                    <div class="file-actions">
+                                        <button class="btn btn-outline-primary compact-btn" :disabled="!file.has_lyrics" @click="previewFile(index)">预览</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <section class="panel" v-if="uiMode === 'path'">
-            <div class="panel-head">
-                <h3><i class="bi bi-list-check"></i>路径结果</h3>
-                <span class="muted">执行后在这里查看结果</span>
-            </div>
-            <div class="panel-body">
-                <div v-if="pathResult" class="path-result">
-                    <div><strong>模式：</strong>[[ pathResult.dry_run ? '预览（不改文件）' : '正式处理' ]]</div>
-                    <div><strong>总音频：</strong>[[ pathResult.total_audio_files ]]</div>
-                    <div><strong>成功：</strong>[[ pathResult.success_count ]]，<strong>失败：</strong>[[ pathResult.failed_count ]]，<strong>忽略：</strong>[[ pathResult.ignored_count ]]</div>
-                    <div><strong>总移除行：</strong>[[ pathResult.total_removed ]]</div>
-                    <div class="mono muted mt-1">[[ pathResult.target_path ]]</div>
+            <section class="panel preview-panel">
+                <div class="panel-head">
+                    <h3><i class="bi bi-eye"></i>预览对比</h3>
+                    <span class="muted">[[ previewFilename ? basename(previewFilename) : '等待选择文件' ]]</span>
                 </div>
-                <div v-else class="empty">
-                    <i class="bi bi-terminal"></i>
-                    执行路径模式后显示统计结果
-                </div>
-                <div
-                    v-if="pathResult && pathResult.dry_run && pathResult.processed_files && pathResult.processed_files.length"
-                    class="result-block">
-                    <h4><i class="bi bi-list-check text-info"></i>预览移除明细</h4>
-                    <div class="inline-actions mb-2">
-                        <button class="btn btn-outline-secondary compact-btn" @click="pathPreviewExpanded = !pathPreviewExpanded">
-                            [[ pathPreviewExpanded ? '收起明细' : '展开明细' ]]
-                        </button>
+                <div class="panel-body">
+                    <div v-if="!previewData" class="empty">
+                        <i class="bi bi-columns-gap"></i> 请选择一个含歌词文件进行对比预览
                     </div>
-                    <ul>
-                        <li v-for="item in (pathPreviewExpanded ? pathResult.processed_files : pathResult.processed_files.slice(0, 5))" :key="item.path">
-                            <div><strong>[[ item.display_name ]]</strong>（移除 [[ item.removed_count ]] 行）</div>
-                            <pre class="removed-list mt-1" v-if="item.removed_lines && item.removed_lines.length">[[ item.removed_lines.join('\n') ]]</pre>
-                            <div class="muted" v-else>未返回具体移除行</div>
-                        </li>
-                    </ul>
-                    <div class="muted" v-if="!pathPreviewExpanded && pathResult.processed_files.length > 5">仅显示前 5 条</div>
+                    <div v-else>
+                        <div class="preview-grid">
+                            <div class="preview-box"><h4>原始歌词</h4><pre class="lyrics">[[ previewData.original_lyrics ]]</pre></div>
+                            <div class="preview-box"><h4>清理后歌词</h4><pre class="lyrics">[[ previewData.cleaned_lyrics ]]</pre></div>
+                        </div>
+                        <div class="removed-box" v-if="previewData.removed_lines && previewData.removed_lines.length">
+                            <h5>已移除 [[ previewData.removed_count ]] 行</h5>
+                            <pre class="removed-list">[[ previewData.removed_lines.join('\n') ]]</pre>
+                        </div>
+                    </div>
                 </div>
-                <div
-                    v-if="pathResult && pathResult.processed_files && pathResult.processed_files.length"
-                    class="result-block">
-                    <h4><i class="bi bi-pencil-square text-warning"></i>已处理文件（可重命名）</h4>
-                    <div class="muted mb-2" v-if="pathResult.dry_run">当前为预览模式，重命名不可用。请关闭“预览模式”后执行。</div>
-                    <div class="mb-2">
-                        <label class="form-label">模板批量重命名</label>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <input
-                                class="form-control"
-                                style="max-width: 320px;"
-                                v-model.trim="renameTemplate"
-                                placeholder="{track}.{title}">
-                            <button
-                                class="btn btn-primary compact-btn"
-                                :disabled="pathResult.dry_run || !renameTemplate || renamingBatch"
-                                @click="renamePathFilesByTemplate">
-                                [[ renamingBatch ? '重命名中...' : '按模板批量重命名' ]]
+            </section>
+        </template>
+
+        <template v-else>
+            <section class="panel path-control-panel">
+                <div class="panel-head">
+                    <h3><i class="bi bi-terminal"></i>路径控制</h3>
+                    <span class="muted">仅服务器路径处理</span>
+                </div>
+                <div class="panel-body">
+                    <div class="advanced-body">
+                        <div class="mb-2">
+                            <label class="form-label" for="serverPath">目标路径</label>
+                            <input id="serverPath" class="form-control" v-model.trim="pathForm.path" placeholder="例如 /music 或 /app/uploads">
+                        </div>
+                        <div class="inline-actions mb-2">
+                            <button class="btn btn-outline-primary compact-btn" @click="openPathPicker">
+                                <i class="bi bi-folder2-open me-1"></i>浏览服务器目录
                             </button>
                         </div>
-                        <div class="muted mt-1">可用变量：`{track}` `{title}` `{artist}` `{index}` `{ext}`，示例：`{track}.{title}{ext}`</div>
-                    </div>
-                    <div class="simple-list">
-                        <div class="simple-item" v-for="(item, idx) in (pathRenameExpanded ? pathResult.processed_files : pathResult.processed_files.slice(0, 8))" :key="item.path">
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="file-name">[[ item.display_name ]]</div>
-                                <div class="file-meta mono">[[ item.path ]]</div>
-                            </div>
-                            <button class="btn btn-outline-primary compact-btn" :disabled="pathResult.dry_run" @click="renamePathFile(item, idx)">重命名</button>
+                        <div class="mb-2">
+                            <label class="form-label" for="extFilter">扩展名过滤（可选）</label>
+                            <input id="extFilter" class="form-control" v-model.trim="pathForm.filterExt" placeholder=".mp3,.flac,.m4a">
+                        </div>
+                        <div class="d-flex justify-content-between flex-wrap">
+                            <label class="form-check">
+                                <input type="checkbox" class="form-check-input" v-model="pathForm.dryRun">
+                                <span class="form-check-label">预览模式</span>
+                            </label>
+                            <label class="form-check">
+                                <input type="checkbox" class="form-check-input" v-model="pathForm.backup">
+                                <span class="form-check-label">备份原文件</span>
+                            </label>
+                        </div>
+                        <div class="inline-actions mt-2">
+                            <button class="btn btn-primary compact-btn" :disabled="pathProcessing" @click="processPath">
+                                <i class="bi bi-play-circle me-1"></i>[[ pathProcessing ? '处理中...' : '执行路径模式' ]]
+                            </button>
                         </div>
                     </div>
-                    <div class="inline-actions mt-2" v-if="pathResult.processed_files.length > 8">
-                        <button class="btn btn-outline-secondary compact-btn" @click="pathRenameExpanded = !pathRenameExpanded">
-                            [[ pathRenameExpanded ? '收起列表' : '展开全部列表' ]]
-                        </button>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h3><i class="bi bi-list-check"></i>路径结果</h3>
+                    <span class="muted">执行后在这里查看结果</span>
+                </div>
+                <div class="panel-body">
+                    <div v-if="pathResult" class="result-summary-card primary">
+                        <div class="result-toggle-head">
+                            <div>
+                                <div class="settings-title">路径摘要</div>
+                                <div class="workspace-hint">[[ pathResult.dry_run ? '预览（不改文件）' : '正式处理' ]]</div>
+                            </div>
+                            <span class="mini-badge ok">[[ pathResult.total_audio_files ]] 音频</span>
+                        </div>
+                        <div class="metric-row mt-2">
+                            <div class="metric">
+                                <div class="label">成功</div>
+                                <div class="value">[[ pathResult.success_count ]]</div>
+                            </div>
+                            <div class="metric danger">
+                                <div class="label">失败</div>
+                                <div class="value">[[ pathResult.failed_count ]]</div>
+                            </div>
+                            <div class="metric warn">
+                                <div class="label">忽略</div>
+                                <div class="value">[[ pathResult.ignored_count ]]</div>
+                            </div>
+                            <div class="metric">
+                                <div class="label">移除行</div>
+                                <div class="value">[[ pathResult.total_removed ]]</div>
+                            </div>
+                        </div>
+                        <div class="mono muted mt-1">[[ pathResult.target_path ]]</div>
+                    </div>
+                    <div v-else class="empty">
+                        <i class="bi bi-terminal"></i>
+                        执行路径模式后显示统计结果
+                    </div>
+                    <div
+                        v-if="pathResult && pathResult.dry_run && pathResult.processed_files && pathResult.processed_files.length"
+                        class="result-block">
+                        <div class="result-toggle-head">
+                            <h4><i class="bi bi-list-check text-info"></i>预览移除明细</h4>
+                            <button class="btn btn-outline-secondary compact-btn" @click="pathPreviewExpanded = !pathPreviewExpanded">
+                                [[ pathPreviewExpanded ? '收起' : '展开' ]]
+                            </button>
+                        </div>
+                        <ul v-show="pathPreviewExpanded">
+                            <li v-for="item in pathResult.processed_files" :key="item.path">
+                                <div><strong>[[ item.display_name ]]</strong>（移除 [[ item.removed_count ]] 行）</div>
+                                <pre class="removed-list mt-1" v-if="item.removed_lines && item.removed_lines.length">[[ item.removed_lines.join('\n') ]]</pre>
+                                <div class="muted" v-else>未返回具体移除行</div>
+                            </li>
+                        </ul>
+                        <div class="muted" v-if="!pathPreviewExpanded && pathResult.processed_files.length > 5">仅显示前 5 条</div>
+                    </div>
+                    <div
+                        v-if="pathResult && pathResult.processed_files && pathResult.processed_files.length"
+                        class="result-block">
+                        <h4><i class="bi bi-pencil-square text-warning"></i>已处理文件（可重命名）</h4>
+                        <div class="muted mb-2" v-if="pathResult.dry_run">当前为预览模式，重命名不可用。请关闭“预览模式”后执行。</div>
+                        <div class="mb-2">
+                            <label class="form-label">模板批量重命名</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <input
+                                    class="form-control"
+                                    style="max-width: 320px;"
+                                    v-model.trim="renameTemplate"
+                                    placeholder="{track}.{title}">
+                                <button
+                                    class="btn btn-primary compact-btn"
+                                    :disabled="pathResult.dry_run || !renameTemplate || renamingBatch"
+                                    @click="renamePathFilesByTemplate">
+                                    [[ renamingBatch ? '重命名中...' : '按模板批量重命名' ]]
+                                </button>
+                            </div>
+                            <div class="muted mt-1">可用变量：`{track}` `{title}` `{artist}` `{index}` `{ext}`，示例：`{track}.{title}{ext}`</div>
+                        </div>
+                        <div class="simple-list">
+                            <div class="simple-item" v-for="(item, idx) in (pathRenameExpanded ? pathResult.processed_files : pathResult.processed_files.slice(0, 8))" :key="item.path">
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="file-name">[[ item.display_name ]]</div>
+                                    <div class="file-meta mono">[[ item.path ]]</div>
+                                </div>
+                                <button class="btn btn-outline-primary compact-btn" :disabled="pathResult.dry_run" @click="renamePathFile(item, idx)">重命名</button>
+                            </div>
+                        </div>
+                        <div class="inline-actions mt-2" v-if="pathResult.processed_files.length > 8">
+                            <button class="btn btn-outline-secondary compact-btn" @click="pathRenameExpanded = !pathRenameExpanded">
+                                [[ pathRenameExpanded ? '收起列表' : '展开全部列表' ]]
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
-        
-        </div>
+            </section>
+        </template>
     </main>
 
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
@@ -1403,6 +1601,9 @@
     </div>
 </div>
 
+<script>
+window.__MUSIC_META_CLEANER_RUNTIME__ = {{ runtime_config|tojson }};
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
 <script>
@@ -1428,6 +1629,7 @@ const vueApp = createApp({
                 timeout: '6'
             },
             aiConfigSavedAt: '',
+            settingsExpanded: false,
             keywordSettings: {
                 loading: false,
                 saving: false,
@@ -1436,6 +1638,8 @@ const vueApp = createApp({
                 defaultKeywords: [],
                 savedAt: ''
             },
+            uploadFailedExpanded: false,
+            uploadIgnoredExpanded: false,
             pathProcessing: false,
             pathResult: null,
             pathForm: {
@@ -1473,10 +1677,18 @@ const vueApp = createApp({
     mounted() {
         this.toastInstance = new bootstrap.Toast(this.$refs.toastEl, { delay: 2600 });
         this.pathPickerModal = new bootstrap.Modal(this.$refs.pathPickerModalEl);
+        this.loadRuntimeConfig();
         this.loadAiConfigFromStorage();
         this.loadKeywordSettings();
     },
     methods: {
+        loadRuntimeConfig() {
+            const config = window.__MUSIC_META_CLEANER_RUNTIME__ || {};
+            const defaultPath = String(config.defaultPath || config.default_path || '').trim();
+            if (!this.pathForm.path && defaultPath) {
+                this.pathForm.path = defaultPath;
+            }
+        },
         splitKeywordDraft(rawValue) {
             if (!rawValue) return [];
             return String(rawValue)
@@ -1667,6 +1879,8 @@ const vueApp = createApp({
             this.previewData = null;
             this.processResult = null;
             this.processedFiles = [];
+            this.uploadFailedExpanded = false;
+            this.uploadIgnoredExpanded = false;
         },
         uploadToServer(files, isFolder) {
             const endpoint = isFolder ? '/upload_folder' : '/upload';
@@ -1790,6 +2004,8 @@ const vueApp = createApp({
 
                 this.processResult = data;
                 this.processedFiles = data.processed_files || [];
+                this.uploadFailedExpanded = Boolean(data.failed_files && data.failed_files.length);
+                this.uploadIgnoredExpanded = false;
                 this.saveAiConfigToStorage();
 
                 this.updateProgress(100, '处理完成');
