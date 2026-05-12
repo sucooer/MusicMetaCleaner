@@ -22,6 +22,7 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 app.config['KEYWORD_SETTINGS_FILENAME'] = '.lyrics-cleaner-keywords.json'
+app.config['EXECUTION_LOG_FILENAME'] = '.execution-logs.json'
 
 # 确保上传和处理文件夹存在
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -47,6 +48,62 @@ def configure_keyword_settings_storage():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
     lyrics_processor.configure_settings_path(get_keyword_settings_path())
+
+
+def get_execution_log_path():
+    """返回执行日志文件路径"""
+    return os.path.join(
+        app.config['UPLOAD_FOLDER'],
+        app.config.get('EXECUTION_LOG_FILENAME', '.execution-logs.json')
+    )
+
+
+def _load_execution_logs():
+    log_path = get_execution_log_path()
+    if not os.path.exists(log_path):
+        return []
+
+    try:
+        with open(log_path, 'r', encoding='utf-8') as file_obj:
+            data = json.load(file_obj)
+        if isinstance(data, list):
+            return data
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return []
+    return []
+
+
+def _save_execution_logs(entries):
+    log_path = get_execution_log_path()
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    with open(log_path, 'w', encoding='utf-8') as file_obj:
+        json.dump(entries, file_obj, ensure_ascii=False, indent=2)
+
+
+def _append_execution_log(mode, result, context=None):
+    """将失败/忽略记录追加到执行日志"""
+    failed_files = list((result or {}).get('failed_files') or [])
+    ignored_files = list((result or {}).get('ignored_files') or [])
+    if not failed_files and not ignored_files:
+        return None
+
+    context = context or {}
+    entry = {
+        'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'mode': mode,
+        'success_count': int((result or {}).get('success_count', 0) or 0),
+        'failed_count': int((result or {}).get('failed_count', len(failed_files)) or 0),
+        'ignored_count': int((result or {}).get('ignored_count', len(ignored_files)) or 0),
+        'target_path': str(context.get('target_path') or (result or {}).get('target_path') or ''),
+        'dry_run': bool(context.get('dry_run', (result or {}).get('dry_run', False))),
+        'failed_files': failed_files,
+        'ignored_files': ignored_files
+    }
+
+    entries = _load_execution_logs()
+    entries.insert(0, entry)
+    _save_execution_logs(entries[:100])
+    return entry
 
 
 def _serialize_keyword_settings():
@@ -212,6 +269,23 @@ def lyrics_keyword_settings():
         return jsonify({'error': f'保存关键词失败: {str(exc)}'}), 500
 
     return jsonify(_serialize_keyword_settings())
+
+
+@app.route('/execution_logs', methods=['GET'])
+def execution_logs():
+    """返回最近的执行日志"""
+    limit_raw = request.args.get('limit', 20)
+    try:
+        limit = int(limit_raw)
+    except (TypeError, ValueError):
+        limit = 20
+    limit = max(1, min(limit, 100))
+
+    entries = _load_execution_logs()
+    return jsonify({
+        'logs': entries[:limit],
+        'total': len(entries)
+    })
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
@@ -531,14 +605,16 @@ def process_files():
         except Exception as e:
             print(f"❌ 导出失败文件时出错: {e}")
     
-    return jsonify({
+    response_payload = {
         'processed_files': processed_files,
         'failed_files': failed_files,
         'ignored_files': ignored_files,
         'success_count': len(processed_files),
         'failed_count': len(failed_files),
         'ignored_count': len(ignored_files)
-    })
+    }
+    _append_execution_log('upload', response_payload)
+    return jsonify(response_payload)
 
 
 @app.route('/process_path', methods=['POST'])
@@ -645,6 +721,10 @@ def process_path():
                     'error': '处理失败'
                 })
 
+            _append_execution_log('path', result, context={
+                'target_path': abs_target_path,
+                'dry_run': dry_run
+            })
             return jsonify(result)
 
         # 文件夹模式
@@ -687,6 +767,10 @@ def process_path():
                         'error': '处理失败'
                     })
 
+        _append_execution_log('path', result, context={
+            'target_path': abs_target_path,
+            'dry_run': dry_run
+        })
         return jsonify(result)
 
     except Exception as e:
@@ -994,7 +1078,10 @@ def export_failed_files():
 def cleanup_files():
     """清理临时文件"""
     try:
-        protected_upload_files = {os.path.abspath(get_keyword_settings_path())}
+        protected_upload_files = {
+            os.path.abspath(get_keyword_settings_path()),
+            os.path.abspath(get_execution_log_path())
+        }
 
         # 清理上传文件夹
         for root, dirs, files in os.walk(app.config['UPLOAD_FOLDER'], topdown=False):

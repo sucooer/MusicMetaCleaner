@@ -567,6 +567,65 @@
             z-index: 1200;
         }
 
+        .modal-content {
+            background: rgba(11, 16, 34, 0.96);
+            color: var(--text);
+            border: 1px solid rgba(148, 163, 184, 0.24);
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-header,
+        .modal-footer {
+            border-color: rgba(148, 163, 184, 0.18);
+        }
+
+        .log-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .log-card {
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.42);
+            padding: 10px;
+        }
+
+        .log-card-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .log-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .log-section {
+            margin-top: 8px;
+            border-top: 1px dashed rgba(148, 163, 184, 0.2);
+            padding-top: 8px;
+        }
+
+        .log-section h6 {
+            margin: 0 0 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .log-section ul {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 0.74rem;
+            max-height: 180px;
+            overflow: auto;
+        }
+
         .form-label {
             margin-bottom: 4px;
             font-size: 0.76rem;
@@ -1122,6 +1181,7 @@
                 <button class="btn btn-sm compact-btn" :class="uiMode === 'upload' ? 'btn-primary' : 'btn-outline-primary'" @click="uiMode = 'upload'">上传模式</button>
                 <button class="btn btn-sm compact-btn" :class="uiMode === 'path' ? 'btn-primary' : 'btn-outline-primary'" @click="uiMode = 'path'">路径模式</button>
             </div>
+            <button class="btn btn-sm btn-outline-secondary compact-btn" @click="openExecutionLogs">执行日志</button>
         </div>
 
         <div class="mode-note">
@@ -1560,6 +1620,63 @@
         </div>
     </div>
 
+    <div class="modal fade" id="executionLogsModal" tabindex="-1" aria-hidden="true" ref="executionLogsModalEl">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1">执行日志</h5>
+                        <div class="muted">查看最近失败和忽略的文件记录</div>
+                    </div>
+                    <div class="inline-actions">
+                        <button class="btn btn-outline-secondary compact-btn" :disabled="executionLogs.loading" @click="loadExecutionLogs(true)">刷新</button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div v-if="executionLogs.loading" class="empty py-3">
+                        <i class="bi bi-hourglass-split"></i> 正在加载执行日志
+                    </div>
+                    <div v-else-if="!executionLogs.items.length" class="empty py-3">
+                        <i class="bi bi-journal-x"></i> 还没有失败或忽略记录
+                    </div>
+                    <div v-else class="log-list">
+                        <div class="log-card" v-for="(log, index) in executionLogs.items" :key="log.created_at + '-' + index">
+                            <div class="log-card-head">
+                                <div>
+                                    <div class="settings-title">[[ log.mode === 'path' ? '路径模式' : '上传模式' ]]</div>
+                                    <div class="muted">[[ log.created_at ]]</div>
+                                    <div class="log-meta">
+                                        <span class="chip">失败<strong>[[ log.failed_count ]]</strong></span>
+                                        <span class="chip">忽略<strong>[[ log.ignored_count ]]</strong></span>
+                                        <span class="chip" v-if="log.dry_run">预览<strong>是</strong></span>
+                                    </div>
+                                </div>
+                                <div class="mono muted" v-if="log.target_path">[[ log.target_path ]]</div>
+                            </div>
+                            <div class="log-section" v-if="log.failed_files && log.failed_files.length">
+                                <h6>失败文件</h6>
+                                <ul>
+                                    <li v-for="item in log.failed_files" :key="item.filename + item.error">
+                                        [[ item.filename ]]: [[ item.error ]]
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="log-section" v-if="log.ignored_files && log.ignored_files.length">
+                                <h6>忽略文件</h6>
+                                <ul>
+                                    <li v-for="item in log.ignored_files" :key="item.filename + item.reason">
+                                        [[ item.filename ]]: [[ item.reason ]]
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="pathPickerModal" tabindex="-1" aria-hidden="true" ref="pathPickerModalEl">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
@@ -1656,6 +1773,12 @@ const vueApp = createApp({
             toastInstance: null,
             toastMessage: '',
             pathPickerModal: null,
+            executionLogsModal: null,
+            executionLogs: {
+                loading: false,
+                items: [],
+                total: 0
+            },
             renameTemplate: '{track}.{title}{ext}',
             renamingBatch: false,
             pathPreviewExpanded: false,
@@ -1677,9 +1800,11 @@ const vueApp = createApp({
     mounted() {
         this.toastInstance = new bootstrap.Toast(this.$refs.toastEl, { delay: 2600 });
         this.pathPickerModal = new bootstrap.Modal(this.$refs.pathPickerModalEl);
+        this.executionLogsModal = new bootstrap.Modal(this.$refs.executionLogsModalEl);
         this.loadRuntimeConfig();
         this.loadAiConfigFromStorage();
         this.loadKeywordSettings();
+        this.loadExecutionLogs();
     },
     methods: {
         loadRuntimeConfig() {
@@ -1688,6 +1813,29 @@ const vueApp = createApp({
             if (!this.pathForm.path && defaultPath) {
                 this.pathForm.path = defaultPath;
             }
+        },
+        async loadExecutionLogs(showToast = false) {
+            this.executionLogs.loading = true;
+            try {
+                const response = await fetch('/execution_logs?limit=20');
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+                this.executionLogs.items = Array.isArray(data.logs) ? data.logs : [];
+                this.executionLogs.total = Number(data.total || 0);
+                if (showToast) {
+                    this.showToast('执行日志已刷新', 'success');
+                }
+            } catch (error) {
+                this.showToast(`加载执行日志失败: ${error.message}`, 'error');
+            } finally {
+                this.executionLogs.loading = false;
+            }
+        },
+        async openExecutionLogs() {
+            await this.loadExecutionLogs();
+            this.executionLogsModal.show();
         },
         splitKeywordDraft(rawValue) {
             if (!rawValue) return [];

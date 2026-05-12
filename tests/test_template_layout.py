@@ -14,6 +14,8 @@ class TemplateLayoutTest(unittest.TestCase):
         self.assertIn('keyword-remove-btn', html)
         self.assertIn('settings-summary-mini', html)
         self.assertNotIn('path-result-panel', html)
+        self.assertIn('executionLogsModalEl', html)
+        self.assertIn('openExecutionLogs', html)
 
 
 if __name__ == '__main__':
