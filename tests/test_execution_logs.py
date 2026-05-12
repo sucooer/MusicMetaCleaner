@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -46,6 +47,10 @@ class ExecutionLogsTest(unittest.TestCase):
         self.assertEqual(log_entry['failed_count'], 1)
         self.assertEqual(log_entry['ignored_count'], 0)
         self.assertEqual(log_entry['failed_files'][0]['filename'], 'missing.mp3')
+
+        with sqlite3.connect(app_module.get_app_db_path()) as conn:
+            row_count = conn.execute('SELECT COUNT(*) FROM execution_logs').fetchone()[0]
+        self.assertEqual(row_count, 1)
 
     def test_path_process_writes_ignored_log_entry(self):
         target_dir = os.path.join(self.tempdir.name, 'music')

@@ -108,6 +108,11 @@ def build_asset_versions(static_root):
         'app.js',
         os.path.join('js', 'state.js'),
         os.path.join('js', 'methods.js'),
+        os.path.join('js', 'methods', 'common.js'),
+        os.path.join('js', 'methods', 'settings.js'),
+        os.path.join('js', 'methods', 'upload.js'),
+        os.path.join('js', 'methods', 'path.js'),
+        os.path.join('js', 'methods', 'files.js'),
     )
     versions = {}
     for asset_name in asset_names:

@@ -1,4 +1,5 @@
 import atexit
+import logging
 import os
 import shutil
 
@@ -16,9 +17,11 @@ from routes import bp, temp_files
 from services import build_runtime_config as _services_build_runtime_config
 from services import get_effective_allowed_root as _services_get_effective_allowed_root
 from services import is_running_in_docker as _services_is_running_in_docker
+from storage import get_app_db_path as _storage_get_app_db_path
 from storage import get_execution_log_path as _storage_get_execution_log_path
 from storage import get_filename_mapping_path as _storage_get_filename_mapping_path
 from storage import get_keyword_settings_path as _storage_get_keyword_settings_path
+from storage import initialize_storage as _initialize_storage
 
 app = Flask(__name__)
 app.jinja_env.variable_start_string = '(('
@@ -28,6 +31,8 @@ app.config['PROCESSED_FOLDER'] = 'processed'
 app.config['KEYWORD_SETTINGS_FILENAME'] = '.lyrics-cleaner-keywords.json'
 app.config['EXECUTION_LOG_FILENAME'] = '.execution-logs.json'
 app.config['FILENAME_MAPPING_FILENAME'] = '.filename-mapping.json'
+app.config['APP_DB_FILENAME'] = '.music-meta-cleaner.db'
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
 
 
 def get_keyword_settings_path():
@@ -42,10 +47,15 @@ def get_filename_mapping_path():
     return _storage_get_filename_mapping_path(app)
 
 
+def get_app_db_path():
+    return _storage_get_app_db_path(app)
+
+
 def configure_keyword_settings_storage():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
     lyrics_processor.configure_settings_path(get_keyword_settings_path())
+    _initialize_storage(app)
 
 
 def _is_running_in_docker():
@@ -69,7 +79,7 @@ def cleanup_temp_files():
                 elif os.path.isdir(temp_file):
                     shutil.rmtree(temp_file)
         except Exception as exc:
-            print(f'清理临时文件失败 {temp_file}: {exc}')
+            app.logger.warning('清理临时文件失败 %s: %s', temp_file, exc)
 
 
 configure_keyword_settings_storage()
@@ -82,6 +92,7 @@ def request_entity_too_large(error):
 
 
 app.register_blueprint(bp)
+app.logger.setLevel(logging.INFO)
 
 
 if __name__ == '__main__':

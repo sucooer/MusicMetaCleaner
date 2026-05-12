@@ -10,6 +10,8 @@ class TemplateLayoutTest(unittest.TestCase):
         self.assertIn("filename='app.js'", html)
         self.assertIn("filename='js/state.js'", html)
         self.assertIn("filename='js/methods.js'", html)
+        self.assertIn("filename='js/methods/upload.js'", html)
+        self.assertIn("filename='js/methods/path.js'", html)
         self.assertNotIn('<style>', html)
         self.assertEqual(html.count('<section class="panel settings-panel">'), 1)
         self.assertIn('workspace-shell', html)
@@ -20,6 +22,7 @@ class TemplateLayoutTest(unittest.TestCase):
         self.assertIn('settings-summary-mini', html)
         self.assertNotIn('path-result-panel', html)
         self.assertIn('executionLogsModalEl', html)
+        self.assertIn('renameModalEl', html)
         self.assertNotIn('createApp({', html)
 
 

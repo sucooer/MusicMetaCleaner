@@ -1,6 +1,6 @@
 import io
-import json
 import os
+import sqlite3
 import tempfile
 import unittest
 
@@ -39,13 +39,13 @@ class FilenameMappingPersistenceTest(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        mapping_path = app_module.get_filename_mapping_path()
-        self.assertTrue(os.path.exists(mapping_path))
+        db_path = app_module.get_app_db_path()
+        self.assertTrue(os.path.exists(db_path))
 
-        with open(mapping_path, 'r', encoding='utf-8') as file_obj:
-            mapping = json.load(file_obj)
+        with sqlite3.connect(db_path) as conn:
+            rows = conn.execute('SELECT original_name FROM filename_mappings').fetchall()
 
-        self.assertEqual(list(mapping.values()), ['Original Song.mp3'])
+        self.assertEqual([row[0] for row in rows], ['Original Song.mp3'])
 
     def test_download_uses_persisted_filename_mapping_after_restart(self):
         internal_filename = '20260512_000000_song.mp3'
@@ -54,8 +54,12 @@ class FilenameMappingPersistenceTest(unittest.TestCase):
         with open(processed_path, 'wb') as file_obj:
             file_obj.write(b'processed')
 
-        with open(app_module.get_filename_mapping_path(), 'w', encoding='utf-8') as file_obj:
-            json.dump({internal_filename: 'Original Song.mp3'}, file_obj, ensure_ascii=False)
+        with sqlite3.connect(app_module.get_app_db_path()) as conn:
+            conn.execute(
+                'INSERT OR REPLACE INTO filename_mappings (internal_name, original_name) VALUES (?, ?)',
+                (internal_filename, 'Original Song.mp3')
+            )
+            conn.commit()
 
         response = self.client.get(f'/download/{processed_filename}')
 

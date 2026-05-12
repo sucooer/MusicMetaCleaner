@@ -1,16 +1,7 @@
-import contextlib
 import json
 import os
-
-try:
-    import fcntl
-except ImportError:  # pragma: no cover - Windows
-    fcntl = None
-
-try:
-    import msvcrt
-except ImportError:  # pragma: no cover - Unix
-    msvcrt = None
+import sqlite3
+from datetime import datetime
 
 
 def _config_path(app, key, default_name):
@@ -22,56 +13,75 @@ def get_keyword_settings_path(app):
 
 
 def get_execution_log_path(app):
-    return _config_path(app, 'EXECUTION_LOG_FILENAME', '.execution-logs.json')
+    return get_app_db_path(app)
 
 
 def get_filename_mapping_path(app):
-    return _config_path(app, 'FILENAME_MAPPING_FILENAME', '.filename-mapping.json')
+    return get_app_db_path(app)
 
 
-@contextlib.contextmanager
-def _file_lock(lock_path, exclusive):
-    os.makedirs(os.path.dirname(lock_path), exist_ok=True)
-    with open(lock_path, 'a+', encoding='utf-8') as lock_file:
-        if fcntl is not None:
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
-        elif msvcrt is not None:  # pragma: no cover - Windows
-            mode = msvcrt.LK_LOCK if exclusive else msvcrt.LK_RLCK
-            msvcrt.locking(lock_file.fileno(), mode, 1)
-        try:
-            yield
-        finally:
-            if fcntl is not None:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-            elif msvcrt is not None:  # pragma: no cover - Windows
-                msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+def get_app_db_path(app):
+    return _config_path(app, 'APP_DB_FILENAME', '.music-meta-cleaner.db')
 
 
-def load_json_file(path, default):
-    lock_path = f'{path}.lock'
-    with _file_lock(lock_path, exclusive=False):
-        if not os.path.exists(path):
-            return default
-        try:
-            with open(path, 'r', encoding='utf-8') as file_obj:
-                return json.load(file_obj)
-        except (OSError, ValueError, TypeError, json.JSONDecodeError):
-            return default
-
-
-def save_json_file(path, payload):
-    lock_path = f'{path}.lock'
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with _file_lock(lock_path, exclusive=True):
-        tmp_path = f'{path}.tmp'
-        with open(tmp_path, 'w', encoding='utf-8') as file_obj:
-            json.dump(payload, file_obj, ensure_ascii=False, indent=2)
-        os.replace(tmp_path, path)
+def initialize_storage(app):
+    db_path = get_app_db_path(app)
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS execution_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                success_count INTEGER NOT NULL,
+                failed_count INTEGER NOT NULL,
+                ignored_count INTEGER NOT NULL,
+                target_path TEXT NOT NULL,
+                dry_run INTEGER NOT NULL,
+                failed_files_json TEXT NOT NULL,
+                ignored_files_json TEXT NOT NULL
+            )
+            '''
+        )
+        conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS filename_mappings (
+                internal_name TEXT PRIMARY KEY,
+                original_name TEXT NOT NULL
+            )
+            '''
+        )
+        conn.commit()
 
 
 def load_execution_logs(app):
-    data = load_json_file(get_execution_log_path(app), [])
-    return data if isinstance(data, list) else []
+    initialize_storage(app)
+    with sqlite3.connect(get_app_db_path(app)) as conn:
+        rows = conn.execute(
+            '''
+            SELECT created_at, mode, success_count, failed_count, ignored_count,
+                   target_path, dry_run, failed_files_json, ignored_files_json
+            FROM execution_logs
+            ORDER BY id DESC
+            LIMIT 100
+            '''
+        ).fetchall()
+
+    entries = []
+    for row in rows:
+        entries.append({
+            'created_at': row[0],
+            'mode': row[1],
+            'success_count': row[2],
+            'failed_count': row[3],
+            'ignored_count': row[4],
+            'target_path': row[5],
+            'dry_run': bool(row[6]),
+            'failed_files': json.loads(row[7]),
+            'ignored_files': json.loads(row[8]),
+        })
+    return entries
 
 
 def append_execution_log(app, mode, result, context=None):
@@ -80,8 +90,7 @@ def append_execution_log(app, mode, result, context=None):
     if not failed_files and not ignored_files:
         return None
 
-    from datetime import datetime
-
+    initialize_storage(app)
     context = context or {}
     entry = {
         'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -95,24 +104,56 @@ def append_execution_log(app, mode, result, context=None):
         'ignored_files': ignored_files,
     }
 
-    entries = load_execution_logs(app)
-    entries.insert(0, entry)
-    save_json_file(get_execution_log_path(app), entries[:100])
+    with sqlite3.connect(get_app_db_path(app)) as conn:
+        conn.execute(
+            '''
+            INSERT INTO execution_logs (
+                created_at, mode, success_count, failed_count, ignored_count,
+                target_path, dry_run, failed_files_json, ignored_files_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (
+                entry['created_at'],
+                entry['mode'],
+                entry['success_count'],
+                entry['failed_count'],
+                entry['ignored_count'],
+                entry['target_path'],
+                int(entry['dry_run']),
+                json.dumps(entry['failed_files'], ensure_ascii=False),
+                json.dumps(entry['ignored_files'], ensure_ascii=False),
+            )
+        )
+        conn.execute(
+            '''
+            DELETE FROM execution_logs
+            WHERE id NOT IN (
+                SELECT id FROM execution_logs ORDER BY id DESC LIMIT 100
+            )
+            '''
+        )
+        conn.commit()
     return entry
 
 
-def load_filename_mapping(app):
-    data = load_json_file(get_filename_mapping_path(app), {})
-    if not isinstance(data, dict):
-        return {}
-    return {str(key): str(value) for key, value in data.items()}
-
-
 def set_filename_mapping(app, internal_name, original_name):
-    mapping = load_filename_mapping(app)
-    mapping[str(internal_name)] = str(original_name)
-    save_json_file(get_filename_mapping_path(app), mapping)
+    initialize_storage(app)
+    with sqlite3.connect(get_app_db_path(app)) as conn:
+        conn.execute(
+            '''
+            INSERT OR REPLACE INTO filename_mappings (internal_name, original_name)
+            VALUES (?, ?)
+            ''',
+            (str(internal_name), str(original_name))
+        )
+        conn.commit()
 
 
 def get_filename_mapping(app, internal_name):
-    return load_filename_mapping(app).get(str(internal_name))
+    initialize_storage(app)
+    with sqlite3.connect(get_app_db_path(app)) as conn:
+        row = conn.execute(
+            'SELECT original_name FROM filename_mappings WHERE internal_name = ?',
+            (str(internal_name),)
+        ).fetchone()
+    return row[0] if row else None

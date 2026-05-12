@@ -45,10 +45,21 @@ function createInitialState() {
             toastMessage: '',
             pathPickerModal: null,
             executionLogsModal: null,
+            renameModal: null,
             executionLogs: {
                 loading: false,
                 items: [],
                 total: 0
+            },
+            renameDialog: {
+                mode: '',
+                title: '',
+                newName: '',
+                processedFilename: '',
+                path: '',
+                fileRef: null,
+                itemRef: null,
+                submitting: false
             },
             renameTemplate: '{track}.{title}{ext}',
             renamingBatch: false,
