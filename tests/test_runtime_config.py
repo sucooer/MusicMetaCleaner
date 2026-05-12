@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import app as app_module
+import services
 
 
 class RuntimeConfigTest(unittest.TestCase):
@@ -27,7 +28,7 @@ class RuntimeConfigTest(unittest.TestCase):
 
     def test_process_path_rejects_non_media_path_inside_docker_by_default(self):
         with patch.dict(os.environ, {'MUSIC_CLEANER_ALLOWED_PATH': ''}, clear=False), \
-             patch.object(app_module, '_is_running_in_docker', return_value=True):
+             patch.object(services, 'is_running_in_docker', return_value=True):
             client = app_module.app.test_client()
             with patch.object(app_module.os.path, 'exists', wraps=app_module.os.path.exists):
                 response = client.post('/process_path', json={'path': os.path.abspath('.')})

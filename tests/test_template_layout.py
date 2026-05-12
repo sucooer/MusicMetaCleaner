@@ -2,10 +2,15 @@ import unittest
 
 
 class TemplateLayoutTest(unittest.TestCase):
-    def test_settings_panel_is_shared_and_workspace_sections_exist(self):
+    def test_template_uses_external_assets_and_keeps_workspace_structure(self):
         with open('templates/index.html', 'r', encoding='utf-8') as file_obj:
             html = file_obj.read()
 
+        self.assertIn("filename='app.css'", html)
+        self.assertIn("filename='app.js'", html)
+        self.assertIn("filename='js/state.js'", html)
+        self.assertIn("filename='js/methods.js'", html)
+        self.assertNotIn('<style>', html)
         self.assertEqual(html.count('<section class="panel settings-panel">'), 1)
         self.assertIn('workspace-shell', html)
         self.assertIn('settings-toggle-bar', html)
@@ -15,7 +20,7 @@ class TemplateLayoutTest(unittest.TestCase):
         self.assertIn('settings-summary-mini', html)
         self.assertNotIn('path-result-panel', html)
         self.assertIn('executionLogsModalEl', html)
-        self.assertIn('openExecutionLogs', html)
+        self.assertNotIn('createApp({', html)
 
 
 if __name__ == '__main__':
