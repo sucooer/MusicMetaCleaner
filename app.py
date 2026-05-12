@@ -21,6 +21,8 @@ from storage import get_filename_mapping_path as _storage_get_filename_mapping_p
 from storage import get_keyword_settings_path as _storage_get_keyword_settings_path
 
 app = Flask(__name__)
+app.jinja_env.variable_start_string = '(('
+app.jinja_env.variable_end_string = '))'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['PROCESSED_FOLDER'] = 'processed'
 app.config['KEYWORD_SETTINGS_FILENAME'] = '.lyrics-cleaner-keywords.json'

@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
-    <link href="{{ url_for('static', filename='app.css') }}" rel="stylesheet">
+    <link href="(( url_for('static', filename='app.css') ))" rel="stylesheet">
 </head>
 <body>
 <div id="app" v-cloak>
@@ -22,14 +22,14 @@
         <div class="top-stats">
             <div class="top-mode-summary">
             <template v-if="uiMode === 'upload'">
-                <span class="chip">总文件<strong>[[ uploadedFiles.length ]]</strong></span>
-                <span class="chip">含歌词<strong>[[ filesWithLyrics.length ]]</strong></span>
-                <span class="chip">已处理<strong>[[ processedFiles.length ]]</strong></span>
+                <span class="chip">总文件<strong>{{ uploadedFiles.length }}</strong></span>
+                <span class="chip">含歌词<strong>{{ filesWithLyrics.length }}</strong></span>
+                <span class="chip">已处理<strong>{{ processedFiles.length }}</strong></span>
             </template>
             <template v-else>
                 <span class="chip">当前模式<strong>路径处理</strong></span>
-                <span class="chip">执行状态<strong>[[ pathResult ? '已执行' : '未执行' ]]</strong></span>
-                <span class="chip">目标路径<strong>[[ pathForm.path ? '已选择' : '未选择' ]]</strong></span>
+                <span class="chip">执行状态<strong>{{ pathResult ? '已执行' : '未执行' }}</strong></span>
+                <span class="chip">目标路径<strong>{{ pathForm.path ? '已选择' : '未选择' }}</strong></span>
             </template>
             </div>
             <div class="mode-switch">
@@ -40,11 +40,11 @@
         </div>
 
         <div class="mode-note">
-            [[ uiMode === 'upload' ? '上传模式：适合处理你本机选择的文件，支持预览与打包下载。' : '路径模式：直接处理服务器目录内音频，适合批量和无人值守场景。' ]]
+            {{ uiMode === 'upload' ? '上传模式：适合处理你本机选择的文件，支持预览与打包下载。' : '路径模式：直接处理服务器目录内音频，适合批量和无人值守场景。' }}
         </div>
 
         <div class="progress-wrap" v-show="progress.visible">
-            <small>[[ progress.text ]]</small>
+            <small>{{ progress.text }}</small>
             <div class="progress">
                 <div class="progress-bar" role="progressbar" :style="{ width: progress.percent + '%' }"></div>
             </div>
@@ -56,17 +56,17 @@
             <div class="panel-head">
                 <h3><i class="bi bi-sliders"></i>清理设置</h3>
                 <button class="btn btn-outline-secondary compact-btn" @click="settingsExpanded = !settingsExpanded">
-                    [[ settingsExpanded ? '收起设置' : '展开设置' ]]
+                    {{ settingsExpanded ? '收起设置' : '展开设置' }}
                 </button>
             </div>
             <div class="panel-body">
                 <div class="settings-toggle-bar">
                     <div class="settings-toggle-meta">
                         <div class="settings-summary-mini">
-                            <span>关键词<strong>[[ keywordSettings.keywords.length ]]</strong></span>
-                            <span>AI<strong>[[ aiEnabled ? '启用' : '关闭' ]]</strong></span>
-                            <span>服务器<strong>[[ keywordSettings.savedAt ? '已保存' : '未保存' ]]</strong></span>
-                            <span>浏览器<strong>[[ aiConfigSavedAt ? '已保存' : '未保存' ]]</strong></span>
+                            <span>关键词<strong>{{ keywordSettings.keywords.length }}</strong></span>
+                            <span>AI<strong>{{ aiEnabled ? '启用' : '关闭' }}</strong></span>
+                            <span>服务器<strong>{{ keywordSettings.savedAt ? '已保存' : '未保存' }}</strong></span>
+                            <span>浏览器<strong>{{ aiConfigSavedAt ? '已保存' : '未保存' }}</strong></span>
                         </div>
                     </div>
                     <div class="workspace-hint">需要时再展开编辑</div>
@@ -78,7 +78,7 @@
                                 <div class="settings-title">关键词规则</div>
                                 <div class="muted">支持逗号或换行一次添加多个关键词，保存后立即参与歌词清理。</div>
                             </div>
-                            <span class="mini-badge ok">[[ keywordSettings.keywords.length ]] 项</span>
+                            <span class="mini-badge ok">{{ keywordSettings.keywords.length }} 项</span>
                         </div>
                         <div class="inline-input">
                             <input
@@ -92,7 +92,7 @@
                         </div>
                         <div class="keyword-list mt-2" v-if="keywordSettings.keywords.length">
                             <div class="keyword-chip" v-for="keyword in keywordSettings.keywords" :key="keyword">
-                                <span class="keyword-chip-label">[[ keyword ]]</span>
+                                <span class="keyword-chip-label">{{ keyword }}</span>
                                 <button type="button" class="keyword-remove-btn" :aria-label="'移除关键词 ' + keyword" @click="removeKeyword(keyword)">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
@@ -103,7 +103,7 @@
                         </div>
                         <div class="inline-actions mt-2">
                             <button class="btn btn-primary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="saveKeywordSettings">
-                                [[ keywordSettings.saving ? '保存中...' : '保存关键词' ]]
+                                {{ keywordSettings.saving ? '保存中...' : '保存关键词' }}
                             </button>
                             <button class="btn btn-outline-secondary compact-btn" :disabled="keywordSettings.loading || keywordSettings.saving" @click="restoreDefaultKeywords">
                                 恢复默认并保存
@@ -112,7 +112,7 @@
                                 刷新
                             </button>
                         </div>
-                        <div class="muted mt-1">[[ keywordSettings.savedAt ? ('服务器已保存：' + keywordSettings.savedAt) : '当前使用默认关键词，尚未保存自定义规则' ]]</div>
+                        <div class="muted mt-1">{{ keywordSettings.savedAt ? ('服务器已保存：' + keywordSettings.savedAt) : '当前使用默认关键词，尚未保存自定义规则' }}</div>
                     </div>
                     <div class="settings-card">
                         <div class="settings-card-head">
@@ -120,7 +120,7 @@
                                 <div class="settings-title">AI 辅助识别</div>
                                 <div class="muted">仅使用你自定义的 AI 提供商配置；未填写时自动退回本地规则。</div>
                             </div>
-                            <span class="mini-badge" :class="aiEnabled ? 'ok' : 'no'">[[ aiEnabled ? '已启用' : '已关闭' ]]</span>
+                            <span class="mini-badge" :class="aiEnabled ? 'ok' : 'no'">{{ aiEnabled ? '已启用' : '已关闭' }}</span>
                         </div>
                         <label class="form-check">
                             <input type="checkbox" class="form-check-input" v-model="aiEnabled">
@@ -134,7 +134,7 @@
                             <button class="btn btn-outline-success compact-btn" @click="saveAiConfigToStorage">保存 AI 配置</button>
                             <button class="btn btn-outline-secondary compact-btn" @click="clearAiConfigStorage">清空 AI 配置</button>
                         </div>
-                        <div class="muted mt-1">[[ aiConfigSavedAt ? ('已保存：' + aiConfigSavedAt) : '尚未保存到浏览器' ]]</div>
+                        <div class="muted mt-1">{{ aiConfigSavedAt ? ('已保存：' + aiConfigSavedAt) : '尚未保存到浏览器' }}</div>
                     </div>
                 </div>
             </div>
@@ -176,7 +176,7 @@
                     <input ref="fileInput" type="file" multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFilesSelected">
                     <input ref="folderInput" type="file" webkitdirectory directory multiple accept="audio/*,.mp3,.flac,.m4a,audio/mpeg,audio/flac,audio/mp4,audio/x-m4a" class="d-none" @change="onFolderSelected">
                     <div class="muted" v-if="uploadFolderStats">
-                        文件夹上传：总 [[ uploadFolderStats.total_files ]]，含歌词 [[ uploadFolderStats.files_with_lyrics ]]
+                        文件夹上传：总 {{ uploadFolderStats.total_files }}，含歌词 {{ uploadFolderStats.files_with_lyrics }}
                     </div>
                 </div>
             </section>
@@ -198,24 +198,24 @@
                                     <div class="settings-title">批处理摘要</div>
                                     <div class="workspace-hint">最近一次处理结果</div>
                                 </div>
-                                <span class="mini-badge ok">[[ processResult.success_count + processResult.failed_count + processResult.ignored_count ]] 项</span>
+                                <span class="mini-badge ok">{{ processResult.success_count + processResult.failed_count + processResult.ignored_count }} 项</span>
                             </div>
                             <div class="metric-row mt-2">
                                 <div class="metric">
                                     <div class="label">总任务</div>
-                                    <div class="value">[[ processResult.success_count + processResult.failed_count + processResult.ignored_count ]]</div>
+                                    <div class="value">{{ processResult.success_count + processResult.failed_count + processResult.ignored_count }}</div>
                                 </div>
                                 <div class="metric ok">
                                     <div class="label">成功</div>
-                                    <div class="value">[[ processResult.success_count ]]</div>
+                                    <div class="value">{{ processResult.success_count }}</div>
                                 </div>
                                 <div class="metric danger">
                                     <div class="label">失败</div>
-                                    <div class="value">[[ processResult.failed_count ]]</div>
+                                    <div class="value">{{ processResult.failed_count }}</div>
                                 </div>
                                 <div class="metric warn">
                                     <div class="label">忽略</div>
-                                    <div class="value">[[ processResult.ignored_count ]]</div>
+                                    <div class="value">{{ processResult.ignored_count }}</div>
                                 </div>
                             </div>
                             <div class="download-actions mt-2" v-if="processedFiles.length">
@@ -229,8 +229,8 @@
                             <div class="simple-list">
                                 <div class="simple-item" v-for="file in processedFiles" :key="file.processed_filename">
                                     <div class="flex-grow-1 min-w-0">
-                                        <div class="file-name">[[ basename(file.display_name || file.original_filename) ]]</div>
-                                        <div class="file-meta">移除 [[ file.removed_count ]] 行信息标头</div>
+                                        <div class="file-name">{{ basename(file.display_name || file.original_filename) }}</div>
+                                        <div class="file-meta">移除 {{ file.removed_count }} 行信息标头</div>
                                     </div>
                                     <button class="btn btn-outline-secondary compact-btn" @click="renameProcessedFile(file)">重命名</button>
                                     <button class="btn btn-outline-primary compact-btn" @click="downloadSingle(file)">下载</button>
@@ -242,7 +242,7 @@
                             <div class="result-toggle-head">
                                 <h4><i class="bi bi-exclamation-triangle-fill text-warning"></i>失败文件</h4>
                                 <button class="btn btn-outline-warning compact-btn" @click="uploadFailedExpanded = !uploadFailedExpanded">
-                                    [[ uploadFailedExpanded ? '收起' : '展开' ]]
+                                    {{ uploadFailedExpanded ? '收起' : '展开' }}
                                 </button>
                             </div>
                             <div v-show="uploadFailedExpanded">
@@ -251,7 +251,7 @@
                                 </button>
                                 <ul>
                                     <li v-for="item in processResult.failed_files" :key="item.filename + item.error">
-                                        [[ item.filename ]]: [[ item.error ]]
+                                        {{ item.filename }}: {{ item.error }}
                                     </li>
                                 </ul>
                             </div>
@@ -261,13 +261,13 @@
                             <div class="result-toggle-head">
                                 <h4><i class="bi bi-info-circle-fill text-info"></i>忽略文件</h4>
                                 <button class="btn btn-outline-info compact-btn" @click="uploadIgnoredExpanded = !uploadIgnoredExpanded">
-                                    [[ uploadIgnoredExpanded ? '收起' : '展开' ]]
+                                    {{ uploadIgnoredExpanded ? '收起' : '展开' }}
                                 </button>
                             </div>
                             <div v-show="uploadIgnoredExpanded">
                                 <ul>
                                     <li v-for="item in processResult.ignored_files" :key="item.filename + item.reason">
-                                        [[ item.filename ]]: [[ item.reason ]]
+                                        {{ item.filename }}: {{ item.reason }}
                                     </li>
                                 </ul>
                             </div>
@@ -279,7 +279,7 @@
             <section class="panel file-list-panel">
                 <div class="panel-head">
                     <h3><i class="bi bi-layout-split"></i>文件列表</h3>
-                    <span class="mini-badge ok">[[ filesWithLyrics.length ]] 可处理</span>
+                    <span class="mini-badge ok">{{ filesWithLyrics.length }} 可处理</span>
                 </div>
                 <div class="panel-body">
                     <div class="file-list">
@@ -289,11 +289,11 @@
                         <div v-else class="file-item" v-for="(file, index) in uploadedFiles" :key="file.filename">
                             <div class="file-item-main">
                                 <div class="file-item-top">
-                                    <div class="file-name">[[ basename(file.original_name) ]]</div>
-                                    <span class="mini-badge" :class="file.has_lyrics ? 'ok' : 'no'">[[ file.has_lyrics ? '有歌词' : '无歌词' ]]</span>
+                                    <div class="file-name">{{ basename(file.original_name) }}</div>
+                                    <span class="mini-badge" :class="file.has_lyrics ? 'ok' : 'no'">{{ file.has_lyrics ? '有歌词' : '无歌词' }}</span>
                                 </div>
                                 <div class="file-item-bottom">
-                                    <div class="file-meta">[[ file.folder || '根目录' ]]</div>
+                                    <div class="file-meta">{{ file.folder || '根目录' }}</div>
                                     <div class="file-actions">
                                         <button class="btn btn-outline-primary compact-btn" :disabled="!file.has_lyrics" @click="previewFile(index)">预览</button>
                                     </div>
@@ -307,7 +307,7 @@
             <section class="panel preview-panel">
                 <div class="panel-head">
                     <h3><i class="bi bi-eye"></i>预览对比</h3>
-                    <span class="muted">[[ previewFilename ? basename(previewFilename) : '等待选择文件' ]]</span>
+                    <span class="muted">{{ previewFilename ? basename(previewFilename) : '等待选择文件' }}</span>
                 </div>
                 <div class="panel-body">
                     <div v-if="!previewData" class="empty">
@@ -315,12 +315,12 @@
                     </div>
                     <div v-else>
                         <div class="preview-grid">
-                            <div class="preview-box"><h4>原始歌词</h4><pre class="lyrics">[[ previewData.original_lyrics ]]</pre></div>
-                            <div class="preview-box"><h4>清理后歌词</h4><pre class="lyrics">[[ previewData.cleaned_lyrics ]]</pre></div>
+                            <div class="preview-box"><h4>原始歌词</h4><pre class="lyrics">{{ previewData.original_lyrics }}</pre></div>
+                            <div class="preview-box"><h4>清理后歌词</h4><pre class="lyrics">{{ previewData.cleaned_lyrics }}</pre></div>
                         </div>
                         <div class="removed-box" v-if="previewData.removed_lines && previewData.removed_lines.length">
-                            <h5>已移除 [[ previewData.removed_count ]] 行</h5>
-                            <pre class="removed-list">[[ previewData.removed_lines.join('\n') ]]</pre>
+                            <h5>已移除 {{ previewData.removed_count }} 行</h5>
+                            <pre class="removed-list">{{ previewData.removed_lines.join('\n') }}</pre>
                         </div>
                     </div>
                 </div>
@@ -360,7 +360,7 @@
                         </div>
                         <div class="inline-actions mt-2">
                             <button class="btn btn-primary compact-btn" :disabled="pathProcessing" @click="processPath">
-                                <i class="bi bi-play-circle me-1"></i>[[ pathProcessing ? '处理中...' : '执行路径模式' ]]
+                                <i class="bi bi-play-circle me-1"></i>{{ pathProcessing ? '处理中...' : '执行路径模式' }}
                             </button>
                         </div>
                     </div>
@@ -377,29 +377,29 @@
                         <div class="result-toggle-head">
                             <div>
                                 <div class="settings-title">路径摘要</div>
-                                <div class="workspace-hint">[[ pathResult.dry_run ? '预览（不改文件）' : '正式处理' ]]</div>
+                                <div class="workspace-hint">{{ pathResult.dry_run ? '预览（不改文件）' : '正式处理' }}</div>
                             </div>
-                            <span class="mini-badge ok">[[ pathResult.total_audio_files ]] 音频</span>
+                            <span class="mini-badge ok">{{ pathResult.total_audio_files }} 音频</span>
                         </div>
                         <div class="metric-row mt-2">
                             <div class="metric">
                                 <div class="label">成功</div>
-                                <div class="value">[[ pathResult.success_count ]]</div>
+                                <div class="value">{{ pathResult.success_count }}</div>
                             </div>
                             <div class="metric danger">
                                 <div class="label">失败</div>
-                                <div class="value">[[ pathResult.failed_count ]]</div>
+                                <div class="value">{{ pathResult.failed_count }}</div>
                             </div>
                             <div class="metric warn">
                                 <div class="label">忽略</div>
-                                <div class="value">[[ pathResult.ignored_count ]]</div>
+                                <div class="value">{{ pathResult.ignored_count }}</div>
                             </div>
                             <div class="metric">
                                 <div class="label">移除行</div>
-                                <div class="value">[[ pathResult.total_removed ]]</div>
+                                <div class="value">{{ pathResult.total_removed }}</div>
                             </div>
                         </div>
-                        <div class="mono muted mt-1">[[ pathResult.target_path ]]</div>
+                        <div class="mono muted mt-1">{{ pathResult.target_path }}</div>
                     </div>
                     <div v-else class="empty">
                         <i class="bi bi-terminal"></i>
@@ -411,13 +411,13 @@
                         <div class="result-toggle-head">
                             <h4><i class="bi bi-list-check text-info"></i>预览移除明细</h4>
                             <button class="btn btn-outline-secondary compact-btn" @click="pathPreviewExpanded = !pathPreviewExpanded">
-                                [[ pathPreviewExpanded ? '收起' : '展开' ]]
+                                {{ pathPreviewExpanded ? '收起' : '展开' }}
                             </button>
                         </div>
                         <ul v-show="pathPreviewExpanded">
                             <li v-for="item in pathResult.processed_files" :key="item.path">
-                                <div><strong>[[ item.display_name ]]</strong>（移除 [[ item.removed_count ]] 行）</div>
-                                <pre class="removed-list mt-1" v-if="item.removed_lines && item.removed_lines.length">[[ item.removed_lines.join('\n') ]]</pre>
+                                <div><strong>{{ item.display_name }}</strong>（移除 {{ item.removed_count }} 行）</div>
+                                <pre class="removed-list mt-1" v-if="item.removed_lines && item.removed_lines.length">{{ item.removed_lines.join('\n') }}</pre>
                                 <div class="muted" v-else>未返回具体移除行</div>
                             </li>
                         </ul>
@@ -440,7 +440,7 @@
                                     class="btn btn-primary compact-btn"
                                     :disabled="pathResult.dry_run || !renameTemplate || renamingBatch"
                                     @click="renamePathFilesByTemplate">
-                                    [[ renamingBatch ? '重命名中...' : '按模板批量重命名' ]]
+                                    {{ renamingBatch ? '重命名中...' : '按模板批量重命名' }}
                                 </button>
                             </div>
                             <div class="muted mt-1">可用变量：`{track}` `{title}` `{artist}` `{index}` `{ext}`，示例：`{track}.{title}{ext}`</div>
@@ -448,15 +448,15 @@
                         <div class="simple-list">
                             <div class="simple-item" v-for="(item, idx) in (pathRenameExpanded ? pathResult.processed_files : pathResult.processed_files.slice(0, 8))" :key="item.path">
                                 <div class="flex-grow-1 min-w-0">
-                                    <div class="file-name">[[ item.display_name ]]</div>
-                                    <div class="file-meta mono">[[ item.path ]]</div>
+                                    <div class="file-name">{{ item.display_name }}</div>
+                                    <div class="file-meta mono">{{ item.path }}</div>
                                 </div>
                                 <button class="btn btn-outline-primary compact-btn" :disabled="pathResult.dry_run" @click="renamePathFile(item, idx)">重命名</button>
                             </div>
                         </div>
                         <div class="inline-actions mt-2" v-if="pathResult.processed_files.length > 8">
                             <button class="btn btn-outline-secondary compact-btn" @click="pathRenameExpanded = !pathRenameExpanded">
-                                [[ pathRenameExpanded ? '收起列表' : '展开全部列表' ]]
+                                {{ pathRenameExpanded ? '收起列表' : '展开全部列表' }}
                             </button>
                         </div>
                     </div>
@@ -471,7 +471,7 @@
                 <strong class="me-auto">通知</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
             </div>
-            <div class="toast-body">[[ toastMessage ]]</div>
+            <div class="toast-body">{{ toastMessage }}</div>
         </div>
     </div>
 
@@ -499,21 +499,21 @@
                         <div class="log-card" v-for="(log, index) in executionLogs.items" :key="log.created_at + '-' + index">
                             <div class="log-card-head">
                                 <div>
-                                    <div class="settings-title">[[ log.mode === 'path' ? '路径模式' : '上传模式' ]]</div>
-                                    <div class="muted">[[ log.created_at ]]</div>
+                                    <div class="settings-title">{{ log.mode === 'path' ? '路径模式' : '上传模式' }}</div>
+                                    <div class="muted">{{ log.created_at }}</div>
                                     <div class="log-meta">
-                                        <span class="chip">失败<strong>[[ log.failed_count ]]</strong></span>
-                                        <span class="chip">忽略<strong>[[ log.ignored_count ]]</strong></span>
+                                        <span class="chip">失败<strong>{{ log.failed_count }}</strong></span>
+                                        <span class="chip">忽略<strong>{{ log.ignored_count }}</strong></span>
                                         <span class="chip" v-if="log.dry_run">预览<strong>是</strong></span>
                                     </div>
                                 </div>
-                                <div class="mono muted" v-if="log.target_path">[[ log.target_path ]]</div>
+                                <div class="mono muted" v-if="log.target_path">{{ log.target_path }}</div>
                             </div>
                             <div class="log-section" v-if="log.failed_files && log.failed_files.length">
                                 <h6>失败文件</h6>
                                 <ul>
                                     <li v-for="item in log.failed_files" :key="item.filename + item.error">
-                                        [[ item.filename ]]: [[ item.error ]]
+                                        {{ item.filename }}: {{ item.error }}
                                     </li>
                                 </ul>
                             </div>
@@ -521,7 +521,7 @@
                                 <h6>忽略文件</h6>
                                 <ul>
                                     <li v-for="item in log.ignored_files" :key="item.filename + item.reason">
-                                        [[ item.filename ]]: [[ item.reason ]]
+                                        {{ item.filename }}: {{ item.reason }}
                                     </li>
                                 </ul>
                             </div>
@@ -542,7 +542,7 @@
                 <div class="modal-body">
                     <div class="mb-2">
                         <div class="muted">当前路径</div>
-                        <div class="mono">[[ pathPicker.currentPath || '-' ]]</div>
+                        <div class="mono">{{ pathPicker.currentPath || '-' }}</div>
                     </div>
                     <div class="inline-actions mb-2">
                         <button class="btn btn-outline-secondary compact-btn" :disabled="!pathPicker.parentPath || pathPicker.loading" @click="browsePath(pathPicker.parentPath)">
@@ -555,7 +555,7 @@
                             <i class="bi bi-check2-circle me-1"></i>选择当前目录
                         </button>
                     </div>
-                    <div v-if="pathPicker.error" class="alert alert-warning py-2 mb-2">[[ pathPicker.error ]]</div>
+                    <div v-if="pathPicker.error" class="alert alert-warning py-2 mb-2">{{ pathPicker.error }}</div>
                     <div class="path-picker-list" v-if="pathPicker.directories.length">
                         <button
                             class="path-picker-item"
@@ -563,7 +563,7 @@
                             v-for="dir in pathPicker.directories"
                             :key="dir.path"
                             @click="browsePath(dir.path)">
-                            <i class="bi bi-folder me-2"></i>[[ dir.name ]]
+                            <i class="bi bi-folder me-2"></i>{{ dir.name }}
                         </button>
                     </div>
                     <div v-else class="empty py-3">当前目录没有可访问的子目录</div>
@@ -574,12 +574,12 @@
 </div>
 
 <script>
-window.__MUSIC_META_CLEANER_RUNTIME__ = {{ runtime_config|tojson }};
+window.__MUSIC_META_CLEANER_RUNTIME__ = (( runtime_config|tojson ));
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
-<script src="{{ url_for('static', filename='js/state.js') }}"></script>
-<script src="{{ url_for('static', filename='js/methods.js') }}"></script>
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script src="(( url_for('static', filename='js/state.js') ))"></script>
+<script src="(( url_for('static', filename='js/methods.js') ))"></script>
+<script src="(( url_for('static', filename='app.js') ))"></script>
 </body>
 </html>

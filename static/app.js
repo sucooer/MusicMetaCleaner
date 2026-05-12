@@ -31,7 +31,6 @@ function createAppOptions() {
 function mountBrowserApp() {
     if (!createVueApp) return null;
     const vueApp = createVueApp(createAppOptions());
-    vueApp.config.compilerOptions.delimiters = ['[[', ']]'];
     vueApp.mount('#app');
     return vueApp;
 }
