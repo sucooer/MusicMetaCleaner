@@ -216,6 +216,14 @@
             grid-row: 2;
         }
 
+        .dashboard.mode-path .path-result-wide-panel {
+            grid-column: 1 / -1;
+            grid-row: 3;
+            width: 100%;
+            max-width: min(1480px, 100%);
+            justify-self: stretch;
+        }
+
         .dashboard.mode-upload .panel,
         .dashboard.mode-path .panel {
             height: auto;
